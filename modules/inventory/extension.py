@@ -5,13 +5,13 @@ from plaik_sdk import ExtensionRuntime
 
 class InventoryQuery:
     def __init__(self) -> None:
-        self._stock: dict[int, int] = {}
+        self._stock: dict[str, int] = {}
 
-    def set(self, product_id: int, quantity: int) -> None:
-        self._stock[int(product_id)] = int(quantity)
+    def set(self, product_id, quantity: int) -> None:
+        self._stock[str(product_id)] = int(quantity)
 
-    def get(self, product_id: int) -> int:
-        return self._stock.get(int(product_id), 0)
+    def get(self, product_id) -> int:
+        return self._stock.get(str(product_id), 0)
 
     def list(self) -> tuple[dict, ...]:
         return tuple(
@@ -46,7 +46,7 @@ def register(runtime: ExtensionRuntime) -> None:
         if catalog is None:
             return
         for product in catalog.list():
-            product_id = int(product["id"])
+            product_id = str(product["id"])
             if query.get(product_id) == 0:
                 query.set(product_id, default_quantity)
 
@@ -55,12 +55,12 @@ def register(runtime: ExtensionRuntime) -> None:
         if product_id is None:
             sync_from_catalog()
             return
-        if query.get(int(product_id)) == 0:
-            query.set(int(product_id), default_quantity)
+        if query.get(product_id) == 0:
+            query.set(product_id, default_quantity)
         runtime.events.publish(
             "inventory.changed",
             "1.0.0",
-            {"product_id": int(product_id), "quantity": query.get(int(product_id))},
+            {"product_id": str(product_id), "quantity": query.get(product_id)},
         )
 
     sync_from_catalog()

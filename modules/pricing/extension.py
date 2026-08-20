@@ -6,19 +6,19 @@ from plaik_sdk import ExtensionRuntime
 class PricingQuery:
     def __init__(self, currency: str) -> None:
         self.currency = currency
-        self._prices: dict[int, dict] = {}
+        self._prices: dict[str, dict] = {}
 
-    def set(self, product_id: int, amount_minor: int) -> dict:
+    def set(self, product_id, amount_minor: int) -> dict:
         record = {
-            "product_id": int(product_id),
+            "product_id": str(product_id),
             "amount_minor": int(amount_minor),
             "currency": self.currency,
         }
-        self._prices[int(product_id)] = record
+        self._prices[str(product_id)] = record
         return record
 
-    def get(self, product_id: int) -> dict | None:
-        return self._prices.get(int(product_id))
+    def get(self, product_id) -> dict | None:
+        return self._prices.get(str(product_id))
 
     def list(self) -> tuple[dict, ...]:
         return tuple(self._prices[key] for key in sorted(self._prices))
@@ -49,7 +49,7 @@ def register(runtime: ExtensionRuntime) -> None:
         if catalog is None:
             return
         for product in catalog.list():
-            product_id = int(product["id"])
+            product_id = str(product["id"])
             if query.get(product_id) is None:
                 query.set(product_id, 1990)
 

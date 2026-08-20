@@ -6,10 +6,10 @@ from plaik_sdk import ExtensionRuntime
 class SeoQuery:
     def __init__(self, host: str) -> None:
         self.host = host
-        self._records: dict[int, dict] = {}
+        self._records: dict[str, dict] = {}
 
     def upsert(self, product: dict) -> dict:
-        product_id = int(product["id"])
+        product_id = str(product["id"])
         record = {
             "product_id": product_id,
             "title": str(product.get("title") or f"Product {product_id}"),
@@ -18,8 +18,8 @@ class SeoQuery:
         self._records[product_id] = record
         return record
 
-    def get(self, product_id: int) -> dict | None:
-        return self._records.get(int(product_id))
+    def get(self, product_id) -> dict | None:
+        return self._records.get(str(product_id))
 
     def list(self) -> tuple[dict, ...]:
         return tuple(self._records[key] for key in sorted(self._records))
