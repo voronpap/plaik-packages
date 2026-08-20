@@ -20,6 +20,16 @@ CatalogProducts = _engine_mod.CatalogProducts
 CatalogCategories = _engine_mod.CatalogCategories
 CatalogAttributes = _engine_mod.CatalogAttributes
 
+_ADMIN_PATH = Path(__file__).with_name("catalog_admin.py")
+_ADMIN_SPEC = importlib.util.spec_from_file_location(
+    "plaik_pkg_catalog_admin", _ADMIN_PATH
+)
+if _ADMIN_SPEC is None or _ADMIN_SPEC.loader is None:
+    raise ImportError("cannot load catalog_admin.py")
+_admin_mod = importlib.util.module_from_spec(_ADMIN_SPEC)
+_ADMIN_SPEC.loader.exec_module(_admin_mod)
+register_admin = _admin_mod.register_admin
+
 
 def register(runtime: ExtensionRuntime) -> None:
     if runtime.package_id != "catalog":
@@ -42,3 +52,4 @@ def register(runtime: ExtensionRuntime) -> None:
             query.upsert(item)
 
     runtime.jobs.register("catalog.reindex", handle_reindex)
+    register_admin(runtime, engine)

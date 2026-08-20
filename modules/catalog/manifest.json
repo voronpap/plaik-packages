@@ -41,12 +41,39 @@
   "storage": [
     {"id": "catalog.media", "kind": "media"}
   ],
+  "admin": {
+    "commands": [
+      {"id": "catalog.products.list", "permission": "catalog.manage"},
+      {"id": "catalog.products.get", "permission": "catalog.manage"},
+      {"id": "catalog.products.create", "permission": "catalog.manage"},
+      {"id": "catalog.products.update", "permission": "catalog.manage"},
+      {"id": "catalog.products.archive", "permission": "catalog.manage"},
+      {"id": "catalog.categories.list", "permission": "catalog.manage"},
+      {"id": "catalog.categories.get", "permission": "catalog.manage"},
+      {"id": "catalog.categories.create", "permission": "catalog.manage"},
+      {"id": "catalog.categories.update", "permission": "catalog.manage"},
+      {"id": "catalog.attributes.list", "permission": "catalog.manage"},
+      {"id": "catalog.attributes.create", "permission": "catalog.manage"},
+      {"id": "catalog.attributes.update", "permission": "catalog.manage"},
+      {"id": "catalog.attributes.options", "permission": "catalog.manage"}
+    ]
+  },
   "web": {
     "hooks": [],
     "slots": [
       {
         "slot": "storefront.collection.products",
         "template": "templates/product-grid.html",
+        "position": 100
+      },
+      {
+        "slot": "storefront.product.gallery",
+        "template": "templates/product-gallery.html",
+        "position": 100
+      },
+      {
+        "slot": "storefront.product.variants",
+        "template": "templates/product-variants.html",
         "position": 100
       }
     ]
