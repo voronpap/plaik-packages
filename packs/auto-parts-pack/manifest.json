@@ -1,0 +1,22 @@
+{
+  "id": "auto-parts-pack",
+  "type": "pack",
+  "version": "0.1.0",
+  "name": "Auto Parts Pack",
+  "core": ">=0.4.0,<0.5.0",
+  "dependencies": [
+    {"package_id": "catalog", "version": ">=0.1.0,<0.2.0"},
+    {"package_id": "inventory", "version": ">=0.1.0,<0.2.0"},
+    {"package_id": "pricing", "version": ">=0.1.0,<0.2.0"},
+    {"package_id": "search", "version": ">=0.1.0,<0.2.0"},
+    {"package_id": "seo", "version": ">=0.1.0,<0.2.0"}
+  ],
+  "conflicts": [],
+  "requires": [
+    {"id": "catalog.products", "version": ">=1.0.0,<2.0.0"},
+    {"id": "inventory.stock", "version": ">=1.0.0,<2.0.0"},
+    {"id": "pricing.list", "version": ">=1.0.0,<2.0.0"},
+    {"id": "search.facets", "version": ">=1.0.0,<2.0.0"},
+    {"id": "seo.storefront", "version": ">=1.0.0,<2.0.0"}
+  ]
+}

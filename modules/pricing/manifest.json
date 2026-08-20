@@ -1,0 +1,18 @@
+{
+  "id": "pricing",
+  "type": "module",
+  "version": "0.1.0",
+  "name": "Pricing",
+  "core": ">=0.4.0,<0.5.0",
+  "dependencies": [{"package_id": "catalog", "version": ">=0.1.0,<0.2.0"}],
+  "conflicts": [],
+  "permissions": [{"id": "pricing.manage", "description": "Manage list prices"}],
+  "settings": [{"key": "currency", "secret": false}],
+  "services": [{"contract": "pricing.query", "version": "1.0.0"}],
+  "events": [{"contract": "pricing.changed", "version": "1.0.0"}],
+  "provides": [{"id": "pricing.list", "version": "1.0.0"}],
+  "requires": [{"id": "catalog.products", "version": ">=1.0.0,<2.0.0"}],
+  "migrations": [{"version": "001_init", "path": "sql/001_init.sql"}],
+  "storage": [],
+  "web": {"hooks": [], "slots": []}
+}
