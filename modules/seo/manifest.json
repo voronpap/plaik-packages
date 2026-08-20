@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "name": "SEO",
   "core": ">=0.4.0,<0.5.0",
-  "dependencies": [{"package_id": "catalog", "version": ">=0.1.0,<0.2.0"}],
+  "dependencies": [{"package_id": "catalog", "version": ">=1.0.0,<2.0.0"}],
   "conflicts": [],
   "permissions": [{"id": "seo.manage", "description": "Manage storefront SEO records"}],
   "settings": [{"key": "canonical-host", "secret": false}],
