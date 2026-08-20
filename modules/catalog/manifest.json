@@ -63,17 +63,17 @@
     "slots": [
       {
         "slot": "storefront.collection.products",
-        "template": "templates/product-grid.html",
+        "template": "product-grid.html",
         "position": 100
       },
       {
         "slot": "storefront.product.gallery",
-        "template": "templates/product-gallery.html",
+        "template": "product-gallery.html",
         "position": 100
       },
       {
         "slot": "storefront.product.variants",
-        "template": "templates/product-variants.html",
+        "template": "product-variants.html",
         "position": 100
       }
     ]
