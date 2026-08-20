@@ -1,18 +1,44 @@
 {
   "id": "inventory",
   "type": "module",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "name": "Inventory",
   "core": ">=0.4.0,<0.5.0",
   "dependencies": [{"package_id": "catalog", "version": ">=1.0.0,<2.0.0"}],
   "conflicts": [],
   "permissions": [{"id": "inventory.manage", "description": "Manage stock levels"}],
   "settings": [{"key": "low-stock-threshold", "secret": false}],
-  "services": [{"contract": "inventory.query", "version": "1.0.0"}],
-  "events": [{"contract": "inventory.changed", "version": "1.0.0"}],
+  "services": [
+    {"contract": "inventory.query", "version": "1.0.0"},
+    {"contract": "inventory.stock", "version": "1.0.0"}
+  ],
+  "events": [
+    {"contract": "inventory.changed", "version": "1.0.0"},
+    {"contract": "inventory.stockChanged", "version": "1.0.0"}
+  ],
   "provides": [{"id": "inventory.stock", "version": "1.0.0"}],
   "requires": [{"id": "catalog.products", "version": ">=1.0.0,<2.0.0"}],
-  "migrations": [{"version": "001_init", "path": "sql/001_init.sql"}],
+  "migrations": [
+    {"version": "001_init", "path": "sql/001_init.sql"},
+    {"version": "002_inventory_v1", "path": "sql/002_inventory_v1.sql"}
+  ],
   "storage": [],
-  "web": {"hooks": [], "slots": []}
+  "admin": {
+    "commands": [
+      {"id": "inventory.stock.list", "permission": "inventory.manage"},
+      {"id": "inventory.stock.get", "permission": "inventory.manage"},
+      {"id": "inventory.stock.set", "permission": "inventory.manage"},
+      {"id": "inventory.stock.adjust", "permission": "inventory.manage"}
+    ]
+  },
+  "web": {
+    "hooks": [],
+    "slots": [
+      {
+        "slot": "storefront.product.availability",
+        "template": "availability.html",
+        "position": 100
+      }
+    ]
+  }
 }

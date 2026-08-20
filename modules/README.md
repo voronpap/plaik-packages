@@ -5,7 +5,7 @@ Official PLAIK business-domain packages live here.
 0.4 proof stack:
 
 - `catalog` — products and attributes (`catalog.products`)
-- `inventory` — stock (`inventory.stock`)
+- `inventory` — stock (`inventory.stock` 1.0.0; identity `(store_id, product_id)`)
 - `pricing` — list prices (`pricing.list`)
 - `search` — facets (`search.facets`)
 - `seo` — storefront SEO (`seo.storefront`)
