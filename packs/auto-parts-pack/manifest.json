@@ -7,7 +7,7 @@
   "dependencies": [
     {"package_id": "catalog", "version": ">=1.0.0,<2.0.0"},
     {"package_id": "inventory", "version": ">=1.0.0,<2.0.0"},
-    {"package_id": "pricing", "version": ">=0.1.0,<0.2.0"},
+    {"package_id": "pricing", "version": ">=1.0.0,<2.0.0"},
     {"package_id": "search", "version": ">=0.1.0,<0.2.0"},
     {"package_id": "seo", "version": ">=0.1.0,<0.2.0"}
   ],

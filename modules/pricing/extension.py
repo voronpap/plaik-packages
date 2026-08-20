@@ -1,71 +1,57 @@
 """Pricing package entry point. Depends only on public plaik-sdk."""
 
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+
 from plaik_sdk import ExtensionRuntime
 
+_ENGINE_PATH = Path(__file__).with_name("pricing_engine.py")
+_SPEC = importlib.util.spec_from_file_location("plaik_pkg_pricing_engine", _ENGINE_PATH)
+if _SPEC is None or _SPEC.loader is None:
+    raise ImportError("cannot load pricing_engine.py")
+_engine_mod = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(_engine_mod)
 
-class PricingQuery:
-    def __init__(self, currency: str) -> None:
-        self.currency = currency
-        self._prices: dict[str, dict] = {}
+PricingEngine = _engine_mod.PricingEngine
+PricingQuery = _engine_mod.PricingQuery
+PricingList = _engine_mod.PricingList
 
-    def set(self, product_id, amount_minor: int) -> dict:
-        record = {
-            "product_id": str(product_id),
-            "amount_minor": int(amount_minor),
-            "currency": self.currency,
-        }
-        self._prices[str(product_id)] = record
-        return record
-
-    def get(self, product_id) -> dict | None:
-        return self._prices.get(str(product_id))
-
-    def list(self) -> tuple[dict, ...]:
-        return tuple(self._prices[key] for key in sorted(self._prices))
-
-
-def _catalog_query(runtime: ExtensionRuntime):
-    resolve = getattr(runtime.services, "resolve", None)
-    if not callable(resolve):
-        return None
-    try:
-        provider = resolve("catalog.query", ">=1.0.0,<2.0.0")
-    except Exception:
-        return None
-    if not callable(getattr(provider, "list", None)):
-        return None
-    return provider
+_ADMIN_PATH = Path(__file__).with_name("pricing_admin.py")
+_ADMIN_SPEC = importlib.util.spec_from_file_location(
+    "plaik_pkg_pricing_admin", _ADMIN_PATH
+)
+if _ADMIN_SPEC is None or _ADMIN_SPEC.loader is None:
+    raise ImportError("cannot load pricing_admin.py")
+_admin_mod = importlib.util.module_from_spec(_ADMIN_SPEC)
+_ADMIN_SPEC.loader.exec_module(_admin_mod)
+register_admin = _admin_mod.register_admin
 
 
 def register(runtime: ExtensionRuntime) -> None:
     if runtime.package_id != "pricing":
         raise ValueError("runtime package id does not match this package")
 
-    currency = runtime.settings.get("currency") or "UAH"
-    query = PricingQuery(str(currency))
-
-    def sync_from_catalog() -> None:
-        catalog = _catalog_query(runtime)
-        if catalog is None:
-            return
-        for product in catalog.list():
-            product_id = str(product["id"])
-            if query.get(product_id) is None:
-                query.set(product_id, 1990)
+    engine = PricingEngine(runtime)
+    runtime.services.register("pricing.query", "1.0.0", PricingQuery(engine))
+    runtime.services.register("pricing.list", "1.0.0", PricingList(engine))
 
     def on_catalog_changed(payload) -> None:
         del payload
-        sync_from_catalog()
-        runtime.events.publish("pricing.changed", "1.0.0", {"currency": query.currency})
+        # Catalog identity changes do not invent list prices.
 
-    sync_from_catalog()
-    runtime.services.register("pricing.query", "1.0.0", query)
     subscribe = getattr(runtime.events, "subscribe", None)
     if callable(subscribe):
-        subscribe("catalog.changed", ">=1.0.0,<2.0.0", on_catalog_changed)
+        try:
+            subscribe("catalog.changed", ">=1.0.0,<2.0.0", on_catalog_changed)
+        except Exception as error:
+            if "no compatible" not in str(error).lower():
+                raise
 
     def handle_reprice(context) -> None:
         del context
-        sync_from_catalog()
+        # Preview-compat job. Do not invent default amounts.
 
     runtime.jobs.register("pricing.reprice", handle_reprice)
+    register_admin(runtime, engine)
