@@ -32,7 +32,7 @@ def _new_id() -> str:
 
 
 def _now() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _require_id(value: object, *, field: str = "id") -> str:
@@ -47,14 +47,6 @@ def _optional_id(value: object, *, field: str) -> str | None:
     return _require_id(value, field=field)
 
 
-def _coerce_id(value: object, *, field: str = "id") -> str:
-    if isinstance(value, str):
-        return _require_id(value, field=field)
-    if isinstance(value, int) and not isinstance(value, bool):
-        return _require_id(str(value), field=field)
-    raise CatalogError(f"invalid {field}")
-
-
 def _slug_from(title: str, fallback: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", title.casefold()).strip("-")
     return slug or fallback.casefold()
@@ -67,9 +59,23 @@ def _iso(value: object) -> str:
     return str(value)
 
 
-def _sql_missing(error: BaseException) -> bool:
+def _sql_unbound(error: BaseException) -> bool:
+    """True only when the host never bound a package SQL connector.
+
+    Isolated SDK tests and Core hosts without ``package_sql_connect`` raise
+    ``package SQL is unavailable``. A bound connector that fails to open, or a
+    generation fence, must not fall back to the in-memory map.
+    """
+
     text = str(error).lower()
-    return "unavailable" in text or "no longer bound" in text
+    if "no longer bound" in text or "connection failed" in text:
+        return False
+    return "package sql is unavailable" in text
+
+
+def _event_key(contract: str, entity_id: str, action: str, stamp: str) -> str:
+    compact = stamp.replace("+", "p").replace(":", "").replace(".", "")
+    return f"{contract}:{entity_id}:{action}:{compact}"[:128]
 
 
 def _sql_conflict(error: BaseException) -> bool:
@@ -131,7 +137,7 @@ class CatalogEngine:
             with self.runtime.sql.transaction() as tx:
                 tx.fetchone("SELECT 1")
         except Exception as error:
-            if _sql_missing(error):
+            if _sql_unbound(error):
                 self._mode = "memory"
                 return False
             raise
@@ -152,38 +158,38 @@ class CatalogEngine:
             return str(raw)
         return "draft"
 
-    def _emit_product(self, *, action: str, product_id: str, sku: str) -> None:
-        token = uuid4().hex
+    def _emit_product(self, *, action: str, product_id: str, sku: str, stamp: str | None = None) -> None:
+        issued = stamp or _now()
         payload = {"product_id": product_id, "sku": sku, "action": action}
         self.runtime.events.publish(
             "catalog.changed",
             "1.0.0",
             payload,
-            idempotency_key=f"catalog.changed:{product_id}:{action}:{token}",
+            idempotency_key=_event_key("catalog.changed", product_id, action, issued),
         )
         self.runtime.events.publish(
             "catalog.productChanged",
             "1.0.0",
             {"id": product_id, "sku": sku, "action": action},
-            idempotency_key=f"catalog.productChanged:{product_id}:{action}:{token}",
+            idempotency_key=_event_key("catalog.productChanged", product_id, action, issued),
         )
 
-    def _emit_category(self, *, action: str, category_id: str) -> None:
-        token = uuid4().hex
+    def _emit_category(self, *, action: str, category_id: str, stamp: str | None = None) -> None:
+        issued = stamp or _now()
         self.runtime.events.publish(
             "catalog.categoryChanged",
             "1.0.0",
             {"id": category_id, "action": action},
-            idempotency_key=f"catalog.categoryChanged:{category_id}:{action}:{token}",
+            idempotency_key=_event_key("catalog.categoryChanged", category_id, action, issued),
         )
 
-    def _emit_attribute(self, *, action: str, attribute_id: str) -> None:
-        token = uuid4().hex
+    def _emit_attribute(self, *, action: str, attribute_id: str, stamp: str | None = None) -> None:
+        issued = stamp or _now()
         self.runtime.events.publish(
             "catalog.attributeChanged",
             "1.0.0",
             {"id": attribute_id, "action": action},
-            idempotency_key=f"catalog.attributeChanged:{attribute_id}:{action}:{token}",
+            idempotency_key=_event_key("catalog.attributeChanged", attribute_id, action, issued),
         )
 
     def _load_attributes(self) -> tuple[dict[str, Any], ...]:
@@ -301,7 +307,7 @@ class CatalogEngine:
         }
 
     def query_get(self, product_id: object) -> dict[str, Any] | None:
-        identifier = _coerce_id(product_id)
+        identifier = _require_id(product_id)
         product = self._get_product_record(identifier)
         if product is None:
             return None
@@ -314,7 +320,7 @@ class CatalogEngine:
         if not isinstance(product, dict):
             raise CatalogError("product must be an object")
         raw_id = product.get("id")
-        identifier = None if raw_id is None else _coerce_id(raw_id)
+        identifier = None if raw_id is None else _require_id(raw_id)
         existing = None if identifier is None else self._get_product_record(identifier)
         payload = {
             "id": identifier,
@@ -433,7 +439,9 @@ class CatalogEngine:
             self._products[product_id] = record
             if attributes is not None:
                 self._assign_attribute_map(product_id, attributes)
-        self._emit_product(action="created", product_id=product_id, sku=sku)
+        self._emit_product(
+            action="created", product_id=product_id, sku=sku, stamp=now
+        )
         return dict(record)
 
     def _sql_insert_product(
@@ -535,7 +543,12 @@ class CatalogEngine:
             if attributes is not None:
                 self._assign_attribute_map(product_id, attributes)
         action = "archived" if status == "archived" else "changed"
-        self._emit_product(action=action, product_id=product_id, sku=sku)
+        self._emit_product(
+            action=action,
+            product_id=product_id,
+            sku=sku,
+            stamp=record["updated_at"],
+        )
         return dict(record)
 
     def archive_product(self, product_id: str) -> dict[str, Any]:
@@ -738,17 +751,26 @@ class CatalogEngine:
         slug = str(payload.get("slug") or record["slug"])
         if not name or not _SLUG.fullmatch(slug):
             raise CatalogError("invalid category fields")
+        if any(item["slug"] == slug and item["id"] != category_id for item in self.list_categories()):
+            raise CatalogError("slug already exists")
         record.update({"name": name, "slug": slug, "updated_at": _now()})
         if self._using_sql():
-            with self.runtime.sql.transaction() as tx:
-                tx.execute(
-                    "UPDATE categories SET name = %s, slug = %s, updated_at = %s "
-                    "WHERE store_id = %s AND id = %s",
-                    (name, slug, record["updated_at"], self.store_id, category_id),
-                )
+            try:
+                with self.runtime.sql.transaction() as tx:
+                    tx.execute(
+                        "UPDATE categories SET name = %s, slug = %s, updated_at = %s "
+                        "WHERE store_id = %s AND id = %s",
+                        (name, slug, record["updated_at"], self.store_id, category_id),
+                    )
+            except Exception as error:
+                if _sql_conflict(error):
+                    raise CatalogError("slug already exists") from error
+                raise
         else:
             self._categories[category_id].update(record)
-        self._emit_category(action="changed", category_id=category_id)
+        self._emit_category(
+            action="changed", category_id=category_id, stamp=record["updated_at"]
+        )
         return dict(record)
 
     def get_category(self, category_id: str) -> dict[str, Any] | None:
@@ -940,6 +962,9 @@ class CatalogEngine:
                 )
         else:
             self._product_categories.setdefault(product_id, set()).add(category_id)
+        product = self._get_product_record(product_id)
+        if product is not None:
+            self._emit_product(action="changed", product_id=product_id, sku=product["sku"])
 
     def set_variant_axes(self, parent_id: str, attribute_ids: list[str]) -> None:
         parent = self._get_product_record(_require_id(parent_id))
@@ -972,6 +997,7 @@ class CatalogEngine:
                     )
         else:
             self._axes[parent_id] = unique
+        self._emit_product(action="changed", product_id=parent_id, sku=parent["sku"])
 
     def add_media(self, product_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         if self._get_product_record(_require_id(product_id)) is None:
@@ -1011,6 +1037,14 @@ class CatalogEngine:
                 )
         else:
             self._media[media_id] = record
+        product = self._get_product_record(product_id)
+        if product is not None:
+            self._emit_product(
+                action="changed",
+                product_id=product_id,
+                sku=product["sku"],
+                stamp=now,
+            )
         return dict(record)
 
     def create_brand(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -1129,10 +1163,10 @@ class CatalogAttributes:
         return self._engine.create_option(attribute_id, payload)
 
     def assign(self, product_id: str, attributes: dict) -> None:
-        self._engine._assign_attribute_map(product_id, attributes)
         product = self._engine.get_product(product_id)
         if product is None:
             raise CatalogError("product is unknown")
+        self._engine._assign_attribute_map(product_id, attributes)
         self._engine._emit_product(
             action="changed", product_id=product_id, sku=product["sku"]
         )
