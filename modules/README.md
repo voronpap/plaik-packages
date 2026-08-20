@@ -6,7 +6,7 @@ Official PLAIK business-domain packages live here.
 
 - `catalog` — products and attributes (`catalog.products`)
 - `inventory` — stock (`inventory.stock` 1.0.0; identity `(store_id, product_id)`)
-- `pricing` — list prices (`pricing.list`)
+- `pricing` — list prices (`pricing.list` 1.0.0; identity `(store_id, product_id)`)
 - `search` — facets (`search.facets`)
 - `seo` — storefront SEO (`seo.storefront`)
 
