@@ -19,7 +19,7 @@
     "slots": [
       {
         "slot": "storefront.seo.structured-data",
-        "template": "templates/structured-data.html",
+        "template": "structured-data.html",
         "position": 100
       }
     ]
