@@ -1,5 +1,5 @@
 # Packs
 
-PLAIK packs are compatible selections of packages. A pack contains composition metadata only; it does not implement business logic, privileged runtime behavior or its own persistence.
+Packs select compatible official packages. They do not ship implementation.
 
-Example future pack: `commerce-standard`, selecting compatible catalog, inventory, cart, checkout, orders, payments and shipping packages with explicit version ranges.
+`auto-parts-pack` composes the 0.4 proof stack: catalog, inventory, pricing, search and SEO.

@@ -1,0 +1,42 @@
+{
+  "id": "catalog",
+  "type": "module",
+  "version": "0.1.0",
+  "name": "Catalog",
+  "core": ">=0.4.0,<0.5.0",
+  "dependencies": [],
+  "conflicts": [],
+  "permissions": [
+    {
+      "id": "catalog.manage",
+      "description": "Manage catalog products and attributes"
+    }
+  ],
+  "settings": [
+    {"key": "page-size", "secret": false}
+  ],
+  "services": [
+    {"contract": "catalog.query", "version": "1.0.0"}
+  ],
+  "events": [
+    {"contract": "catalog.changed", "version": "1.0.0"}
+  ],
+  "provides": [
+    {"id": "catalog.products", "version": "1.0.0"}
+  ],
+  "requires": [],
+  "migrations": [
+    {"version": "001_init", "path": "sql/001_init.sql"}
+  ],
+  "storage": [],
+  "web": {
+    "hooks": [],
+    "slots": [
+      {
+        "slot": "storefront.collection.products",
+        "template": "templates/product-grid.html",
+        "position": 100
+      }
+    ]
+  }
+}

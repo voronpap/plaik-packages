@@ -4,16 +4,18 @@ Official installable packages for **PLAIK**.
 
 This repository contains business modules, external integrations, installable themes and packs assembled against the public `plaik-sdk` contracts.
 
-## Planned layout
+## 0.4 proof stack
 
 ```text
-modules/
-integrations/
-themes/
-packs/
+modules/catalog
+modules/inventory
+modules/pricing
+modules/search
+modules/seo
+packs/auto-parts-pack
 ```
 
-Commerce is one package family, not the repository boundary. Catalog, inventory, cart, checkout, orders, payments, shipping and related capabilities belong here as installable packages rather than in PLAIK Core.
+These packages depend only on released `plaik-sdk`. They do not import `plaik_core`. Cart, checkout, orders and payments wait for a later commerce-runtime phase.
 
 ## Rules
 
