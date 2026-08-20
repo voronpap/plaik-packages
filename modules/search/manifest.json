@@ -19,7 +19,7 @@
     "slots": [
       {
         "slot": "storefront.search.filters",
-        "template": "templates/facets.html",
+        "template": "facets.html",
         "position": 100
       }
     ]
