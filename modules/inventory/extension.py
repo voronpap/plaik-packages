@@ -1,76 +1,63 @@
 """Inventory package entry point. Depends only on public plaik-sdk."""
 
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+
 from plaik_sdk import ExtensionRuntime
 
+_ENGINE_PATH = Path(__file__).with_name("inventory_engine.py")
+_SPEC = importlib.util.spec_from_file_location("plaik_pkg_inventory_engine", _ENGINE_PATH)
+if _SPEC is None or _SPEC.loader is None:
+    raise ImportError("cannot load inventory_engine.py")
+_engine_mod = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(_engine_mod)
 
-class InventoryQuery:
-    def __init__(self) -> None:
-        self._stock: dict[str, int] = {}
+InventoryEngine = _engine_mod.InventoryEngine
+InventoryQuery = _engine_mod.InventoryQuery
+InventoryStock = _engine_mod.InventoryStock
 
-    def set(self, product_id, quantity: int) -> None:
-        self._stock[str(product_id)] = int(quantity)
-
-    def get(self, product_id) -> int:
-        return self._stock.get(str(product_id), 0)
-
-    def list(self) -> tuple[dict, ...]:
-        return tuple(
-            {"product_id": product_id, "quantity": quantity}
-            for product_id, quantity in sorted(self._stock.items())
-        )
-
-
-def _catalog_query(runtime: ExtensionRuntime):
-    resolve = getattr(runtime.services, "resolve", None)
-    if not callable(resolve):
-        return None
-    try:
-        provider = resolve("catalog.query", ">=1.0.0,<2.0.0")
-    except Exception:
-        return None
-    if not callable(getattr(provider, "list", None)):
-        return None
-    return provider
+_ADMIN_PATH = Path(__file__).with_name("inventory_admin.py")
+_ADMIN_SPEC = importlib.util.spec_from_file_location(
+    "plaik_pkg_inventory_admin", _ADMIN_PATH
+)
+if _ADMIN_SPEC is None or _ADMIN_SPEC.loader is None:
+    raise ImportError("cannot load inventory_admin.py")
+_admin_mod = importlib.util.module_from_spec(_ADMIN_SPEC)
+_ADMIN_SPEC.loader.exec_module(_admin_mod)
+register_admin = _admin_mod.register_admin
 
 
 def register(runtime: ExtensionRuntime) -> None:
     if runtime.package_id != "inventory":
         raise ValueError("runtime package id does not match this package")
 
-    query = InventoryQuery()
-    threshold = runtime.settings.get("low-stock-threshold", 4)
-    default_quantity = 8 if not isinstance(threshold, int) else max(int(threshold) * 2, 1)
-
-    def sync_from_catalog() -> None:
-        catalog = _catalog_query(runtime)
-        if catalog is None:
-            return
-        for product in catalog.list():
-            product_id = str(product["id"])
-            if query.get(product_id) == 0:
-                query.set(product_id, default_quantity)
+    engine = InventoryEngine(runtime)
+    runtime.services.register("inventory.query", "1.0.0", InventoryQuery(engine))
+    runtime.services.register("inventory.stock", "1.0.0", InventoryStock(engine))
 
     def on_catalog_changed(payload) -> None:
         product_id = payload.get("product_id") if isinstance(payload, dict) else None
         if product_id is None:
-            sync_from_catalog()
+            engine.sync_from_catalog()
             return
-        if query.get(product_id) == 0:
-            query.set(product_id, default_quantity)
-        runtime.events.publish(
-            "inventory.changed",
-            "1.0.0",
-            {"product_id": str(product_id), "quantity": query.get(product_id)},
-        )
+        try:
+            engine.ensure_zero(product_id)
+        except _engine_mod.InventoryError:
+            return
 
-    sync_from_catalog()
-    runtime.services.register("inventory.query", "1.0.0", query)
     subscribe = getattr(runtime.events, "subscribe", None)
     if callable(subscribe):
-        subscribe("catalog.changed", ">=1.0.0,<2.0.0", on_catalog_changed)
+        try:
+            subscribe("catalog.changed", ">=1.0.0,<2.0.0", on_catalog_changed)
+        except Exception as error:
+            if "no compatible" not in str(error).lower():
+                raise
 
     def handle_sync(context) -> None:
         del context
-        sync_from_catalog()
+        engine.sync_from_catalog()
 
     runtime.jobs.register("inventory.sync", handle_sync)
+    register_admin(runtime, engine)
