@@ -7,8 +7,8 @@ Official PLAIK business-domain packages live here.
 - `catalog` — products and attributes (`catalog.products`)
 - `inventory` — stock (`inventory.stock` 1.0.0; identity `(store_id, product_id)`)
 - `pricing` — list prices (`pricing.list` 1.0.0; identity `(store_id, product_id)`)
-- `search` — facets (`search.facets`)
-- `seo` — storefront SEO (`seo.storefront`)
+- `search` — facets (`search.facets` 1.0.0; identity `(store_id, name, value)`)
+- `seo` — storefront SEO (`seo.storefront` 1.0.0; identity `(store_id, product_id)`)
 
 Modules own their data and rules. They may expose versioned services/events/hooks through `plaik-sdk`, but must not import private PLAIK Core implementation details or access another package's private storage directly.
 
