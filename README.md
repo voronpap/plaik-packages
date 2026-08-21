@@ -15,7 +15,7 @@ modules/seo
 packs/auto-parts-pack
 ```
 
-These packages depend only on released `plaik-sdk`. They do not import `plaik_core`. Cart, checkout, orders and payments wait for a later commerce-runtime phase.
+These packages depend only on released `plaik-sdk`. They do not import `plaik_core`. Each 1.0.x module declares Core `>=0.4.0,<0.5.0`. Cart, checkout, orders and payments wait for a later commerce-runtime phase.
 
 ## Rules
 
