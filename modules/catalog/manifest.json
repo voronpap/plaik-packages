@@ -1,9 +1,9 @@
 {
   "id": "catalog",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Catalog",
-  "core": ">=0.4.0,<0.5.0",
+  "core": ">=0.4.0,<0.6.0",
   "dependencies": [],
   "conflicts": [],
   "permissions": [

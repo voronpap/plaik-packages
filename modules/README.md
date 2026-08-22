@@ -5,19 +5,19 @@ Official PLAIK business-domain packages live here.
 0.4 proof stack:
 
 - `catalog` — products and attributes (`catalog.products`)
-- `inventory` — stock (`inventory.stock` 1.0.0; identity `(store_id, product_id)`)
-- `pricing` — list prices (`pricing.list` 1.0.0; identity `(store_id, product_id)`)
-- `search` — facets (`search.facets` 1.0.0; identity `(store_id, name, value)`)
-- `seo` — storefront SEO (`seo.storefront` 1.0.0; identity `(store_id, product_id)`)
+- `inventory` — stock (`inventory.stock` 1.0.1; identity `(store_id, product_id)`)
+- `pricing` — list prices (`pricing.list` 1.0.1; identity `(store_id, product_id)`)
+- `search` — facets (`search.facets` 1.0.1; identity `(store_id, name, value)`)
+- `seo` — storefront SEO (`seo.storefront` 1.0.1; identity `(store_id, product_id)`)
 
 0.5 commerce:
 
-- `cart` — Admin-managed carts (`cart.lines` 1.0.0; identity `(store_id, cart_id)`)
-- `orders` — placed orders (`orders.records` 1.0.0; identity `(store_id, order_id)`)
-- `shipping` — flat/manual methods (`shipping.methods` 1.0.0; identity `(store_id, method_id)`)
-- `payments` — manual capture (`payments.capture` 1.0.0; identity `(store_id, payment_id)`)
-- `promotions` — cart-level coupons (`promotions.coupons` 1.0.0; identity `(store_id, coupon_id)`)
-- `checkout` — place orchestrator (`checkout.place` 1.0.0; idempotency `(store_id, idempotency_key)`)
+- `cart` — Admin-managed carts (`cart.lines` 1.0.1; identity `(store_id, cart_id)`)
+- `orders` — placed orders (`orders.records` 1.0.1; identity `(store_id, order_id)`)
+- `shipping` — flat/manual methods (`shipping.methods` 1.0.1; identity `(store_id, method_id)`)
+- `payments` — manual capture (`payments.capture` 1.0.2; identity `(store_id, payment_id)`)
+- `promotions` — cart-level coupons (`promotions.coupons` 1.0.1; identity `(store_id, coupon_id)`)
+- `checkout` — place orchestrator (`checkout.place` 1.0.1; idempotency `(store_id, idempotency_key)`)
 
 Modules own their data and rules. They may expose versioned services/events/hooks through `plaik-sdk`, but must not import private PLAIK Core implementation details or access another package's private storage directly.
 
