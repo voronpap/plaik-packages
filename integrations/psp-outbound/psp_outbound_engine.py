@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from threading import Lock
 from typing import Any
 
 from plaik_sdk import ExtensionRuntime
@@ -105,6 +106,7 @@ class PspOutboundEngine:
         self.store_id = runtime.store_id
         self._mode: str | None = None
         self._charges: dict[str, dict[str, Any]] = {}
+        self._lock = Lock()
         self.recorded_calls: list[tuple[str, str, dict[str, Any]]] = []
 
     def _using_sql(self) -> bool:
@@ -126,11 +128,6 @@ class PspOutboundEngine:
             raise PspOutboundError("payload must be an object")
         _reject_card_data(payload)
         payment_id = _require_id(payload.get("payment_id"), field="payment_id")
-        existing = self._load(payment_id)
-        if existing is not None:
-            replay = dict(existing)
-            replay["replayed"] = True
-            return _charge_record(replay)
         connection_id = payload.get("connection_id") or ""
         if connection_id not in (None, "") and not isinstance(connection_id, str):
             raise PspOutboundError("invalid connection_id")
@@ -143,22 +140,29 @@ class PspOutboundEngine:
             "currency": _require_currency(payload.get("currency")),
             "connection_id": connection_id,
         }
-        self.recorded_calls.append(("POST", RECORDED_CAPTURE_URL, dict(body)))
-        fixture = _recorded_post("POST", RECORDED_CAPTURE_URL, body)
         stamp = _now()
-        record = {
+        claimed = {
             "store_id": self.store_id,
             "payment_id": payment_id,
             "amount_minor": body["amount_minor"],
             "currency": body["currency"],
             "connection_id": connection_id,
-            "provider_ref": str(fixture["id"]),
+            "provider_ref": "",
             "created_at": stamp,
             "replayed": False,
         }
-        self._write(record)
-        self._publish(record, stamp)
-        return _charge_record(record)
+        with self._lock:
+            existing = self._claim(claimed)
+            if existing is not None:
+                replay = dict(existing)
+                replay["replayed"] = True
+                return _charge_record(replay)
+            self.recorded_calls.append(("POST", RECORDED_CAPTURE_URL, dict(body)))
+            fixture = _recorded_post("POST", RECORDED_CAPTURE_URL, body)
+            claimed["provider_ref"] = str(fixture["id"])
+            self._complete(claimed)
+            self._publish(claimed, stamp)
+            return _charge_record(claimed)
 
     def get_charge(self, payment_id: object) -> dict[str, Any] | None:
         payment_id = _require_id(payment_id, field="payment_id")
@@ -182,9 +186,28 @@ class PspOutboundEngine:
             return None
         return dict(row)
 
-    def _write(self, record: Mapping[str, Any]) -> None:
+    def _claim(self, record: Mapping[str, Any]) -> dict[str, Any] | None:
+        existing = self._load(str(record["payment_id"]))
+        if existing is not None:
+            return existing
+        try:
+            self._insert_claim(record)
+        except Exception as error:
+            text = str(error).lower()
+            if "connection failed" in text or "no longer bound" in text:
+                raise
+            existing = self._load(str(record["payment_id"]))
+            if existing is not None:
+                return existing
+            raise
+        return None
+
+    def _insert_claim(self, record: Mapping[str, Any]) -> None:
         if not self._using_sql():
-            self._charges[str(record["payment_id"])] = dict(record)
+            payment_id = str(record["payment_id"])
+            if payment_id in self._charges:
+                raise PspOutboundError("charge in progress")
+            self._charges[payment_id] = dict(record)
             return
         with self.runtime.sql.transaction() as tx:
             tx.execute(
@@ -200,6 +223,21 @@ class PspOutboundEngine:
                     record["connection_id"],
                     record["provider_ref"],
                     record["created_at"],
+                ),
+            )
+
+    def _complete(self, record: Mapping[str, Any]) -> None:
+        if not self._using_sql():
+            self._charges[str(record["payment_id"])] = dict(record)
+            return
+        with self.runtime.sql.transaction() as tx:
+            tx.execute(
+                "UPDATE outbound_charges SET provider_ref = %s "
+                "WHERE store_id = %s AND payment_id = %s",
+                (
+                    record["provider_ref"],
+                    record["store_id"],
+                    record["payment_id"],
                 ),
             )
 
