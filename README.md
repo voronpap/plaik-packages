@@ -23,9 +23,10 @@ These packages depend only on released `plaik-sdk`. They do not import `plaik_co
 modules/cart
 modules/orders
 modules/shipping
+modules/payments
 ```
 
-Cart v1 is Admin-managed `(store_id, cart_id)`. Orders v1 stores a snapshot envelope after place. Shipping v1 is flat/manual methods + quote. Payments, promotions and checkout follow later in 0.5.
+Cart v1 is Admin-managed `(store_id, cart_id)`. Orders v1 stores a snapshot envelope after place. Shipping v1 is flat/manual methods + quote. Payments v1 is offline/manual capture. Promotions and checkout follow later in 0.5.
 
 ## Rules
 
