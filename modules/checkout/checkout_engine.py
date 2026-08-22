@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from threading import Lock
 from typing import Any
 
 from plaik_sdk import ExtensionRuntime
@@ -85,6 +86,7 @@ class CheckoutEngine:
         self.store_id = runtime.store_id
         self._mode: str | None = None
         self._placements: dict[str, dict[str, Any]] = {}
+        self._lock = Lock()
 
     def _using_sql(self) -> bool:
         if self._mode is not None:
@@ -134,7 +136,9 @@ class CheckoutEngine:
         coupon_code = _optional_code(payload.get("coupon_code"))
         existing = self._load(idempotency_key)
         if existing is not None:
-            return self._replay(existing)
+            if str(existing.get("payment_id") or ""):
+                return self._replay(existing)
+            raise CheckoutError("checkout in progress")
         quoted = self._quote_cart(cart_id)
         discount = 0
         if coupon_code:
@@ -156,9 +160,15 @@ class CheckoutEngine:
         payable = quoted["goods_minor"] + shipping_amount - discount
         if payable < 0:
             raise CheckoutError("payable_amount_minor must be >= 0")
+        existing = self._claim(idempotency_key, cart_id)
+        if existing is not None:
+            if str(existing.get("payment_id") or ""):
+                return self._replay(existing)
+            raise CheckoutError("checkout in progress")
         adjusted: list[tuple[str, int]] = []
         order_id = ""
         captured_payment = False
+        payment_id = ""
         order: dict[str, Any] | None = None
         captured: dict[str, Any] | None = None
         try:
@@ -208,14 +218,21 @@ class CheckoutEngine:
                     "currency": quoted["currency"],
                 },
             )
-            captured = self._invoke(
-                "payments.query", "capture", payment["payment_id"]
-            )
+            payment_id = str(payment["payment_id"])
+            captured = self._invoke("payments.query", "capture", payment_id)
             captured_payment = True
+            self._complete(idempotency_key, cart_id, order_id, str(captured["payment_id"]))
             order = self._invoke("orders.query", "set_payment_state", order_id, "paid")
         except Exception:
+            if not captured_payment and payment_id:
+                loaded_payment = self._payment_state(payment_id)
+                if loaded_payment == "captured":
+                    captured_payment = True
             if not captured_payment:
+                self._release(idempotency_key)
                 self._compensate(adjusted)
+            elif order_id and payment_id:
+                self._complete(idempotency_key, cart_id, order_id, payment_id)
             raise
         stamp = _now()
         record = {
@@ -226,7 +243,6 @@ class CheckoutEngine:
             "payment_id": str(captured["payment_id"]),
             "created_at": stamp,
         }
-        self._write(record)
         try:
             self._invoke("cart.query", "clear", cart_id)
         except CheckoutError:
@@ -279,7 +295,19 @@ class CheckoutEngine:
                 continue
 
     def _replay(self, row: Mapping[str, Any]) -> dict[str, Any]:
-        order = self._invoke("orders.query", "get", _row_str(row, "order_id"))
+        order_id = _row_str(row, "order_id")
+        order = self._invoke("orders.query", "get", order_id) if order_id else None
+        if (
+            isinstance(order, dict)
+            and str(order.get("payment_state") or "") != "paid"
+            and str(row.get("payment_id") or "")
+        ):
+            try:
+                order = self._invoke(
+                    "orders.query", "set_payment_state", order_id, "paid"
+                )
+            except CheckoutError:
+                pass
         try:
             self._invoke("cart.query", "clear", _row_str(row, "cart_id"))
         except CheckoutError:
@@ -298,7 +326,7 @@ class CheckoutEngine:
     ) -> dict[str, Any]:
         record = _placement_record(row)
         if isinstance(order, dict):
-            record["payment_state"] = str(order.get("payment_state") or "paid")
+            record["payment_state"] = str(order.get("payment_state") or "unpaid")
             record["goods_amount_minor"] = int(order.get("goods_amount_minor") or 0)
             record["shipping_amount_minor"] = int(order.get("shipping_amount_minor") or 0)
             record["discount_amount_minor"] = int(order.get("discount_amount_minor") or 0)
@@ -306,24 +334,46 @@ class CheckoutEngine:
         record["currency"] = currency
         return record
 
-    def _load(self, idempotency_key: str) -> dict[str, Any] | None:
-        if not self._using_sql():
-            record = self._placements.get(idempotency_key)
-            return None if record is None else dict(record)
-        with self.runtime.sql.transaction() as tx:
-            row = tx.fetchone(
-                "SELECT store_id, idempotency_key, cart_id, order_id, payment_id, "
-                "created_at FROM checkout_placements "
-                "WHERE store_id = %s AND idempotency_key = %s",
-                (self.store_id, idempotency_key),
-            )
-        if row is None:
-            return None
-        return dict(row)
+    def _payment_state(self, payment_id: str) -> str:
+        try:
+            loaded = self._invoke("payments.query", "get", payment_id)
+        except CheckoutError:
+            return ""
+        if not isinstance(loaded, dict):
+            return ""
+        return str(loaded.get("state") or "")
 
-    def _write(self, record: Mapping[str, Any]) -> None:
+    def _claim(self, idempotency_key: str, cart_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            existing = self._load(idempotency_key)
+            if existing is not None:
+                return existing
+            record = {
+                "store_id": self.store_id,
+                "idempotency_key": idempotency_key,
+                "cart_id": cart_id,
+                "order_id": "",
+                "payment_id": "",
+                "created_at": _now(),
+            }
+            try:
+                self._insert(record)
+            except Exception as error:
+                text = str(error).lower()
+                if "connection failed" in text or "no longer bound" in text:
+                    raise
+                existing = self._load(idempotency_key)
+                if existing is not None:
+                    return existing
+                raise
+            return None
+
+    def _insert(self, record: Mapping[str, Any]) -> None:
         if not self._using_sql():
-            self._placements[str(record["idempotency_key"])] = dict(record)
+            key = str(record["idempotency_key"])
+            if key in self._placements:
+                raise CheckoutError("checkout in progress")
+            self._placements[key] = dict(record)
             return
         with self.runtime.sql.transaction() as tx:
             tx.execute(
@@ -339,6 +389,64 @@ class CheckoutEngine:
                     record["created_at"],
                 ),
             )
+
+    def _complete(
+        self,
+        idempotency_key: str,
+        cart_id: str,
+        order_id: str,
+        payment_id: str,
+    ) -> None:
+        stamp = _now()
+        if not self._using_sql():
+            current = dict(self._placements.get(idempotency_key) or {})
+            current.update(
+                {
+                    "store_id": self.store_id,
+                    "idempotency_key": idempotency_key,
+                    "cart_id": cart_id,
+                    "order_id": order_id,
+                    "payment_id": payment_id,
+                    "created_at": current.get("created_at") or stamp,
+                }
+            )
+            self._placements[idempotency_key] = current
+            return
+        with self.runtime.sql.transaction() as tx:
+            tx.execute(
+                "UPDATE checkout_placements SET cart_id = %s, order_id = %s, "
+                "payment_id = %s WHERE store_id = %s AND idempotency_key = %s",
+                (cart_id, order_id, payment_id, self.store_id, idempotency_key),
+            )
+
+    def _release(self, idempotency_key: str) -> None:
+        current = self._load(idempotency_key)
+        if current is None or str(current.get("payment_id") or ""):
+            return
+        if not self._using_sql():
+            self._placements.pop(idempotency_key, None)
+            return
+        with self.runtime.sql.transaction() as tx:
+            tx.execute(
+                "DELETE FROM checkout_placements WHERE store_id = %s "
+                "AND idempotency_key = %s AND payment_id = %s",
+                (self.store_id, idempotency_key, ""),
+            )
+
+    def _load(self, idempotency_key: str) -> dict[str, Any] | None:
+        if not self._using_sql():
+            record = self._placements.get(idempotency_key)
+            return None if record is None else dict(record)
+        with self.runtime.sql.transaction() as tx:
+            row = tx.fetchone(
+                "SELECT store_id, idempotency_key, cart_id, order_id, payment_id, "
+                "created_at FROM checkout_placements "
+                "WHERE store_id = %s AND idempotency_key = %s",
+                (self.store_id, idempotency_key),
+            )
+        if row is None:
+            return None
+        return dict(row)
 
 
 class CheckoutQuery:
