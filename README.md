@@ -26,6 +26,7 @@ modules/shipping
 modules/payments
 modules/promotions
 modules/checkout
+packs/auto-parts-pack
 ```
 
 Cart v1 is Admin-managed `(store_id, cart_id)`. Orders v1 stores a snapshot envelope after place. Shipping v1 is flat/manual methods + quote. Payments v1 is offline/manual capture. Promotions v1 is cart-level coupons against a quote. Checkout v1 orchestrates place without a Core saga.
