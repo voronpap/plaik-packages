@@ -16,6 +16,7 @@ _SPEC.loader.exec_module(_engine_mod)
 
 CartEngine = _engine_mod.CartEngine
 CartQuery = _engine_mod.CartQuery
+CartShopper = _engine_mod.CartShopper
 
 _ADMIN_PATH = Path(__file__).with_name("cart_admin.py")
 _ADMIN_SPEC = importlib.util.spec_from_file_location("plaik_pkg_cart_admin", _ADMIN_PATH)
@@ -38,6 +39,8 @@ def register(runtime: ExtensionRuntime) -> None:
         raise ValueError("runtime package id does not match this package")
 
     engine = CartEngine(runtime)
-    runtime.services.register("cart.query", "1.0.0", CartQuery(engine))
+    query = CartQuery(engine)
+    runtime.services.register("cart.query", "1.0.0", query)
+    runtime.services.register("cart.shopper", "1.0.0", CartShopper(engine))
     register_admin(runtime, engine)
     register_public(runtime, engine, query)

@@ -1,9 +1,9 @@
 {
   "id": "seo",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "name": "SEO",
-  "core": ">=0.4.0,<0.6.0",
+  "core": ">=0.5.0,<0.6.0",
   "dependencies": [{"package_id": "catalog", "version": ">=1.0.0,<2.0.0"}],
   "conflicts": [],
   "permissions": [{"id": "seo.manage", "description": "Manage storefront SEO records"}],
@@ -40,5 +40,5 @@
       }
     ]
   },
-  "public": {"queries": [{"id": "metadata", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}], "actions": [], "page_projections": [], "sitemap_projections": []}
+  "public": {"queries": [{"id": "metadata", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}], "actions": [], "page_projections": [], "sitemap_projections": [{"id": "products", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "array", "items": {"type": "string", "max_length": 256}, "max_items": 128}}]}
 }

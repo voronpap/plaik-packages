@@ -1,9 +1,9 @@
 {
   "id": "pricing",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "name": "Pricing",
-  "core": ">=0.4.0,<0.6.0",
+  "core": ">=0.5.0,<0.6.0",
   "dependencies": [{"package_id": "catalog", "version": ">=1.0.0,<2.0.0"}],
   "conflicts": [],
   "permissions": [{"id": "pricing.manage", "description": "Manage list prices"}],

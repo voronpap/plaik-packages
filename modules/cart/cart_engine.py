@@ -153,7 +153,12 @@ class CartEngine:
             return None
         return {"amount_minor": amount, "currency": currency}
 
-    def create_cart(self) -> dict[str, Any]:
+    def create_cart(self, *, owner_subject: str | None = None) -> dict[str, Any]:
+        """Create a cart, optionally bound to the opaque shopper subject.
+
+        ``owner_subject`` is supplied only by the public boundary.  It is the
+        Core-issued opaque handle, never a browser cookie or request value.
+        """
         cart_id = _new_id()
         stamp = _now()
         if not self._using_sql():
@@ -162,6 +167,7 @@ class CartEngine:
                 "cart_id": cart_id,
                 "created_at": stamp,
                 "updated_at": stamp,
+                "owner_subject": owner_subject,
             }
             self._emit(cart_id=cart_id, action="created", stamp=stamp)
             return _cart_record(
@@ -173,9 +179,9 @@ class CartEngine:
             )
         with self.runtime.sql.transaction() as tx:
             tx.execute(
-                "INSERT INTO carts (store_id, cart_id, created_at, updated_at) "
-                "VALUES (%s, %s, %s, %s)",
-                (self.store_id, cart_id, stamp, stamp),
+                "INSERT INTO carts (store_id, cart_id, created_at, updated_at, owner_subject) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (self.store_id, cart_id, stamp, stamp, owner_subject),
             )
         self._emit(cart_id=cart_id, action="created", stamp=stamp)
         return _cart_record(
@@ -185,6 +191,45 @@ class CartEngine:
             updated_at=stamp,
             lines=(),
         )
+
+    def cart_for_subject(self, owner_subject: object) -> dict[str, Any]:
+        """Return the single cart owned by a resolved public subject.
+
+        The method deliberately has no public cart-id input.  This prevents a
+        shopper from selecting another shopper's cart by guessing an id.
+        """
+        subject = _require_id(owner_subject, field="owner_subject")
+        if not self._using_sql():
+            for cart_id, record in self._carts.items():
+                if record.get("owner_subject") == subject:
+                    cart = self.get_cart(cart_id)
+                    if cart is not None:
+                        return cart
+            return self.create_cart(owner_subject=subject)
+        with self.runtime.sql.transaction() as tx:
+            row = tx.fetchone(
+                "SELECT cart_id FROM carts WHERE store_id = %s AND owner_subject = %s",
+                (self.store_id, subject),
+            )
+        if row is not None:
+            cart = self.get_cart(str(row["cart_id"]))
+            if cart is not None:
+                return cart
+        try:
+            return self.create_cart(owner_subject=subject)
+        except Exception:
+            # A concurrent request may have won the unique owner index.
+            with self.runtime.sql.transaction() as tx:
+                row = tx.fetchone(
+                    "SELECT cart_id FROM carts WHERE store_id = %s AND owner_subject = %s",
+                    (self.store_id, subject),
+                )
+            if row is None:
+                raise
+            cart = self.get_cart(str(row["cart_id"]))
+            if cart is None:
+                raise CartError("owned cart is unavailable")
+            return cart
 
     def get_cart(self, cart_id: object) -> dict[str, Any] | None:
         cart_id = _require_id(cart_id, field="cart_id")
@@ -480,3 +525,13 @@ class CartQuery:
 
     def quote(self, cart_id) -> dict:
         return self._engine.quote(cart_id)
+
+
+class CartShopper:
+    """Package service used by other Storefront packages, never by HTTP directly."""
+
+    def __init__(self, engine: CartEngine) -> None:
+        self._engine = engine
+
+    def for_subject(self, owner_subject: str) -> dict:
+        return self._engine.cart_for_subject(owner_subject)

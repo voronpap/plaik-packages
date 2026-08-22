@@ -1,9 +1,9 @@
 {
   "id": "cart",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "name": "Cart",
-  "core": ">=0.4.0,<0.6.0",
+  "core": ">=0.5.0,<0.6.0",
   "dependencies": [
     {"package_id": "catalog", "version": ">=1.0.0,<2.0.0"},
     {"package_id": "pricing", "version": ">=1.0.0,<2.0.0"}
@@ -12,12 +12,13 @@
   "permissions": [{"id": "cart.manage", "description": "Manage store carts"}],
   "settings": [],
   "services": [
-    {"contract": "cart.query", "version": "1.0.0"}
+    {"contract": "cart.query", "version": "1.0.0"},
+    {"contract": "cart.shopper", "version": "1.0.0"}
   ],
   "events": [
     {"contract": "cart.changed", "version": "1.0.0"}
   ],
-  "provides": [{"id": "cart.lines", "version": "1.0.0"}],
+  "provides": [{"id": "cart.lines", "version": "1.0.0"}, {"id": "cart.shopper", "version": "1.0.0"}],
   "requires": [
     {"id": "catalog.products", "version": ">=1.0.0,<2.0.0"},
     {"id": "pricing.list", "version": ">=1.0.0,<2.0.0"}
@@ -76,7 +77,7 @@
       {"id": "set", "access": "session_action", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}, "quantity": {"type": "integer"}}, "required": ["product_id", "quantity"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}},
       {"id": "remove", "access": "session_action", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}
     ],
-    "page_projections": [],
+    "page_projections": [{"id": "cart", "page_key": "cart", "access": "session_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}],
     "sitemap_projections": []
   }
 }

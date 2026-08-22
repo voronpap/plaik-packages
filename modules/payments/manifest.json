@@ -1,9 +1,9 @@
 {
   "id": "payments",
   "type": "module",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "name": "Payments",
-  "core": ">=0.4.0,<0.6.0",
+  "core": ">=0.5.0,<0.6.0",
   "dependencies": [],
   "conflicts": [],
   "permissions": [{"id": "payments.manage", "description": "Manage store payments"}],
@@ -37,5 +37,6 @@
         "position": 100
       }
     ]
-  }
+  },
+  "public": {"queries": [{"id": "methods", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}], "actions": [], "page_projections": [], "sitemap_projections": []}
 }

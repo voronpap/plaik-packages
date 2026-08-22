@@ -1,9 +1,9 @@
 {
   "id": "checkout",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "name": "Checkout",
-  "core": ">=0.4.0,<0.6.0",
+  "core": ">=0.5.0,<0.6.0",
   "dependencies": [
     {"package_id": "catalog", "version": ">=1.0.0,<2.0.0"},
     {"package_id": "pricing", "version": ">=1.0.0,<2.0.0"},
@@ -29,6 +29,7 @@
     {"id": "pricing.list", "version": ">=1.0.0,<2.0.0"},
     {"id": "inventory.stock", "version": ">=1.0.0,<2.0.0"},
     {"id": "cart.lines", "version": ">=1.0.0,<2.0.0"},
+    {"id": "cart.shopper", "version": ">=1.0.0,<2.0.0"},
     {"id": "orders.records", "version": ">=1.0.0,<2.0.0"},
     {"id": "shipping.methods", "version": ">=1.0.0,<2.0.0"},
     {"id": "payments.capture", "version": ">=1.0.0,<2.0.0"},
@@ -52,5 +53,11 @@
         "position": 100
       }
     ]
+  },
+  "public": {
+    "queries": [{"id": "preview", "access": "session_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}],
+    "actions": [{"id": "place", "access": "session_action", "input_schema": {"type": "object", "properties": {"shipping_method_id": {"type": "string", "max_length": 128}, "coupon_code": {"type": "string", "max_length": 128}, "contact_name": {"type": "string", "max_length": 512}, "contact_email": {"type": "string", "max_length": 512}, "contact_phone": {"type": "string", "max_length": 128}, "address_line": {"type": "string", "max_length": 512}, "address_city": {"type": "string", "max_length": 128}, "address_postal": {"type": "string", "max_length": 64}, "address_country": {"type": "string", "max_length": 8}, "payment_method": {"type": "string", "max_length": 32}}, "required": ["shipping_method_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}],
+    "page_projections": [{"id": "checkout", "page_key": "checkout", "access": "session_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}],
+    "sitemap_projections": []
   }
 }

@@ -46,7 +46,8 @@ def register(runtime: ExtensionRuntime) -> None:
     query = CatalogQuery(engine)
     runtime.services.register("catalog.query", "1.0.0", query)
     runtime.services.register("catalog.products", "1.0.0", CatalogProducts(engine))
-    runtime.services.register("catalog.categories", "1.0.0", CatalogCategories(engine))
+    categories = CatalogCategories(engine)
+    runtime.services.register("catalog.categories", "1.0.0", categories)
     runtime.services.register("catalog.attributes", "1.0.0", CatalogAttributes(engine))
 
     def handle_reindex(context) -> None:
@@ -60,4 +61,4 @@ def register(runtime: ExtensionRuntime) -> None:
 
     runtime.jobs.register("catalog.reindex", handle_reindex)
     register_admin(runtime, engine)
-    register_public(runtime, query)
+    register_public(runtime, query, categories)
