@@ -1,5 +1,7 @@
 """Session-bound checkout projection and place action."""
 from __future__ import annotations
+import hashlib
+import json
 from typing import Any, Mapping
 from plaik_sdk import PublicHandlerRef
 from plaik_contracts import PublicDeclarationKind, PublicResponseEnvelope
@@ -26,6 +28,8 @@ def register_public(runtime: Any, query: Any) -> None:
         methods = runtime.services.resolve("shipping.query", ">=1.0.0,<2.0.0").list()
         return PublicResponseEnvelope(data={"cart": public_cart(cart), "quote": public_quote(quote), "shipping_methods": [public_method(item) for item in methods if item.get("enabled", False)], "payment_method": "manual"})
     def place(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
+        if payload.get("payment_method", "manual") != "manual":
+            raise ValueError("only manual payment is supported")
         cart = cart_for(context)
         idem = getattr(getattr(context, "idempotency", None), "value", None)
         if not idem:
@@ -33,6 +37,8 @@ def register_public(runtime: Any, query: Any) -> None:
         request = dict(payload)
         request["cart_id"] = cart["cart_id"]
         request["idempotency_key"] = idem
+        request["_public_subject"] = getattr(context.subject, "value", "")
+        request["_public_fingerprint"] = hashlib.sha256(json.dumps(dict(payload), sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
         request.pop("payment_method", None)
         result = query.place(request)
         return PublicResponseEnvelope(data={key: result[key] for key in ("order_id", "payment_state", "goods_amount_minor", "shipping_amount_minor", "discount_amount_minor", "payable_amount_minor", "currency") if key in result})

@@ -21,6 +21,7 @@
   "provides": [{"id": "cart.lines", "version": "1.0.0"}, {"id": "cart.shopper", "version": "1.0.0"}],
   "requires": [
     {"id": "catalog.products", "version": ">=1.0.0,<2.0.0"},
+    {"id": "catalog.storefront", "version": ">=1.0.0,<2.0.0"},
     {"id": "pricing.list", "version": ">=1.0.0,<2.0.0"}
   ],
   "migrations": [

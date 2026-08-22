@@ -19,6 +19,7 @@ CatalogQuery = _engine_mod.CatalogQuery
 CatalogProducts = _engine_mod.CatalogProducts
 CatalogCategories = _engine_mod.CatalogCategories
 CatalogAttributes = _engine_mod.CatalogAttributes
+CatalogStorefront = _engine_mod.CatalogStorefront
 
 _ADMIN_PATH = Path(__file__).with_name("catalog_admin.py")
 _ADMIN_SPEC = importlib.util.spec_from_file_location(
@@ -45,6 +46,7 @@ def register(runtime: ExtensionRuntime) -> None:
     engine = CatalogEngine(runtime)
     query = CatalogQuery(engine)
     runtime.services.register("catalog.query", "1.0.0", query)
+    runtime.services.register("catalog.storefront", "1.0.0", CatalogStorefront(engine))
     runtime.services.register("catalog.products", "1.0.0", CatalogProducts(engine))
     categories = CatalogCategories(engine)
     runtime.services.register("catalog.categories", "1.0.0", categories)
@@ -61,4 +63,4 @@ def register(runtime: ExtensionRuntime) -> None:
 
     runtime.jobs.register("catalog.reindex", handle_reindex)
     register_admin(runtime, engine)
-    register_public(runtime, query, categories)
+    register_public(runtime, CatalogStorefront(engine))

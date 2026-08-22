@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+import hashlib
+import json
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from threading import Lock
@@ -134,9 +136,15 @@ class CheckoutEngine:
             payload.get("idempotency_key"), field="idempotency_key"
         )
         coupon_code = _optional_code(payload.get("coupon_code"))
+        subject = _require_id(payload.get("_public_subject"), field="public subject")
+        fingerprint = str(payload.get("_public_fingerprint") or "")
+        if not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
+            raise CheckoutError("invalid request fingerprint")
         existing = self._load(idempotency_key)
         if existing is not None:
-            if str(existing.get("payment_id") or ""):
+            if str(existing.get("subject") or "") != subject or str(existing.get("fingerprint") or "") != fingerprint or str(existing.get("cart_id") or "") != cart_id:
+                raise CheckoutError("idempotency conflict")
+            if str(existing.get("state") or "") == "completed":
                 return self._replay(existing)
             raise CheckoutError("checkout in progress")
         quoted = self._quote_cart(cart_id)
@@ -160,17 +168,15 @@ class CheckoutEngine:
         payable = quoted["goods_minor"] + shipping_amount - discount
         if payable < 0:
             raise CheckoutError("payable_amount_minor must be >= 0")
-        existing = self._claim(idempotency_key, cart_id)
+        existing = self._claim(idempotency_key, cart_id, subject, fingerprint)
         if existing is not None:
-            if str(existing.get("payment_id") or ""):
+            if str(existing.get("state") or "") == "completed":
                 return self._replay(existing)
             raise CheckoutError("checkout in progress")
         adjusted: list[tuple[str, int]] = []
         order_id = ""
-        captured_payment = False
         payment_id = ""
         order: dict[str, Any] | None = None
-        captured: dict[str, Any] | None = None
         try:
             for line in quoted["lines"]:
                 product_id = str(line["product_id"])
@@ -179,7 +185,7 @@ class CheckoutEngine:
                 adjusted.append((product_id, quantity))
             order_lines = []
             for line in quoted["lines"]:
-                product = self._invoke("catalog.query", "get", line["product_id"])
+                product = self._invoke("catalog.storefront", "get", line["product_id"])
                 if not isinstance(product, dict) or not product.get("title"):
                     raise CheckoutError("unknown product")
                 order_lines.append(
@@ -219,20 +225,13 @@ class CheckoutEngine:
                 },
             )
             payment_id = str(payment["payment_id"])
-            captured = self._invoke("payments.query", "capture", payment_id)
-            captured_payment = True
-            self._complete(idempotency_key, cart_id, order_id, str(captured["payment_id"]))
-            order = self._invoke("orders.query", "set_payment_state", order_id, "paid")
+            # Storefront v1 is manual/offline only.  Capturing here would
+            # call the PSP path; payment remains open until an operator acts.
+            self._complete(idempotency_key, cart_id, order_id, payment_id)
         except Exception:
-            if not captured_payment and payment_id:
-                loaded_payment = self._payment_state(payment_id)
-                if loaded_payment == "captured":
-                    captured_payment = True
-            if not captured_payment:
-                self._release(idempotency_key)
-                self._compensate(adjusted)
-            elif order_id and payment_id:
-                self._complete(idempotency_key, cart_id, order_id, payment_id)
+            # A failure after the durable claim may have placed an order or
+            # adjusted stock.  It must be reconciled, never made retryable.
+            self._mark_needs_reconciliation(idempotency_key)
             raise
         stamp = _now()
         record = {
@@ -240,7 +239,7 @@ class CheckoutEngine:
             "idempotency_key": idempotency_key,
             "cart_id": cart_id,
             "order_id": order_id,
-            "payment_id": str(captured["payment_id"]),
+            "payment_id": payment_id,
             "created_at": stamp,
         }
         try:
@@ -297,17 +296,6 @@ class CheckoutEngine:
     def _replay(self, row: Mapping[str, Any]) -> dict[str, Any]:
         order_id = _row_str(row, "order_id")
         order = self._invoke("orders.query", "get", order_id) if order_id else None
-        if (
-            isinstance(order, dict)
-            and str(order.get("payment_state") or "") != "paid"
-            and str(row.get("payment_id") or "")
-        ):
-            try:
-                order = self._invoke(
-                    "orders.query", "set_payment_state", order_id, "paid"
-                )
-            except CheckoutError:
-                pass
         try:
             self._invoke("cart.query", "clear", _row_str(row, "cart_id"))
         except CheckoutError:
@@ -343,7 +331,7 @@ class CheckoutEngine:
             return ""
         return str(loaded.get("state") or "")
 
-    def _claim(self, idempotency_key: str, cart_id: str) -> dict[str, Any] | None:
+    def _claim(self, idempotency_key: str, cart_id: str, subject: str, fingerprint: str) -> dict[str, Any] | None:
         with self._lock:
             existing = self._load(idempotency_key)
             if existing is not None:
@@ -354,6 +342,9 @@ class CheckoutEngine:
                 "cart_id": cart_id,
                 "order_id": "",
                 "payment_id": "",
+                "subject": subject,
+                "fingerprint": fingerprint,
+                "state": "in_flight",
                 "created_at": _now(),
             }
             try:
@@ -378,14 +369,17 @@ class CheckoutEngine:
         with self.runtime.sql.transaction() as tx:
             tx.execute(
                 "INSERT INTO checkout_placements ("
-                "store_id, idempotency_key, cart_id, order_id, payment_id, created_at"
-                ") VALUES (%s, %s, %s, %s, %s, %s)",
+                "store_id, idempotency_key, cart_id, order_id, payment_id, subject, fingerprint, state, created_at"
+                ") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (
                     record["store_id"],
                     record["idempotency_key"],
                     record["cart_id"],
                     record["order_id"],
                     record["payment_id"],
+                    record["subject"],
+                    record["fingerprint"],
+                    record["state"],
                     record["created_at"],
                 ),
             )
@@ -408,16 +402,25 @@ class CheckoutEngine:
                     "order_id": order_id,
                     "payment_id": payment_id,
                     "created_at": current.get("created_at") or stamp,
+                    "state": "completed",
                 }
             )
             self._placements[idempotency_key] = current
             return
         with self.runtime.sql.transaction() as tx:
             tx.execute(
-                "UPDATE checkout_placements SET cart_id = %s, order_id = %s, "
-                "payment_id = %s WHERE store_id = %s AND idempotency_key = %s",
-                (cart_id, order_id, payment_id, self.store_id, idempotency_key),
+                "UPDATE checkout_placements SET cart_id = %s, order_id = %s, payment_id = %s, state = %s "
+                "WHERE store_id = %s AND idempotency_key = %s",
+                (cart_id, order_id, payment_id, "completed", self.store_id, idempotency_key),
             )
+
+    def _mark_needs_reconciliation(self, idempotency_key: str) -> None:
+        if not self._using_sql():
+            if idempotency_key in self._placements:
+                self._placements[idempotency_key]["state"] = "needs_reconciliation"
+            return
+        with self.runtime.sql.transaction() as tx:
+            tx.execute("UPDATE checkout_placements SET state = %s WHERE store_id = %s AND idempotency_key = %s", ("needs_reconciliation", self.store_id, idempotency_key))
 
     def _release(self, idempotency_key: str) -> None:
         current = self._load(idempotency_key)
@@ -439,7 +442,7 @@ class CheckoutEngine:
             return None if record is None else dict(record)
         with self.runtime.sql.transaction() as tx:
             row = tx.fetchone(
-                "SELECT store_id, idempotency_key, cart_id, order_id, payment_id, "
+                "SELECT store_id, idempotency_key, cart_id, order_id, payment_id, subject, fingerprint, state, "
                 "created_at FROM checkout_placements "
                 "WHERE store_id = %s AND idempotency_key = %s",
                 (self.store_id, idempotency_key),

@@ -11,6 +11,7 @@ from uuid import uuid4
 from plaik_sdk import ExtensionRuntime
 
 _RESOURCE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+_MAX_PUBLIC_QUANTITY = 100
 
 
 class CartError(ValueError):
@@ -36,6 +37,8 @@ def _require_quantity(value: object) -> int:
         raise CartError("invalid quantity")
     if value < 1:
         raise CartError("quantity must be >= 1")
+    if value > _MAX_PUBLIC_QUANTITY:
+        raise CartError("quantity exceeds the permitted limit")
     return value
 
 
@@ -121,7 +124,7 @@ class CartEngine:
         if not callable(resolve):
             raise CartError("catalog is unavailable")
         try:
-            catalog = resolve("catalog.query", ">=1.0.0,<2.0.0")
+            catalog = resolve("catalog.storefront", ">=1.0.0,<2.0.0")
         except Exception as error:
             raise CartError("catalog is unavailable") from error
         getter = getattr(catalog, "get", None)
@@ -275,6 +278,8 @@ class CartEngine:
         self._require_product(product_id)
         existing = self._line(cart_id, product_id)
         next_qty = quantity if existing is None else int(existing["quantity"]) + quantity
+        if next_qty > _MAX_PUBLIC_QUANTITY:
+            raise CartError("quantity exceeds the permitted limit")
         return self._write_line(cart_id, product_id, next_qty, action="added")
 
     def set_line(self, cart_id: object, product_id: object, quantity: object) -> dict[str, Any] | None:

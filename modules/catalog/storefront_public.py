@@ -8,49 +8,45 @@ from plaik_sdk import PublicHandlerRef
 from plaik_contracts import PublicDeclarationKind, PublicResponseEnvelope
 
 
-def register_public(runtime: Any, query: Any, categories: Any) -> None:
-    def public_category(item: Any) -> dict[str, Any]:
-        if not isinstance(item, Mapping):
-            return {}
-        return {key: item[key] for key in ("id", "slug", "name", "parent_id") if key in item}
+def register_public(runtime: Any, storefront: Any) -> None:
     def products(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del context, payload
-        return PublicResponseEnvelope(data={"items": list(query.list())})
+        return PublicResponseEnvelope(data={"items": list(storefront.list())})
 
     def product(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del context
-        item = query.get(payload["product_id"])
+        item = storefront.get(payload["product_id"])
         return PublicResponseEnvelope(data=item or {})
 
     def category(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del context
-        return PublicResponseEnvelope(data=public_category(categories.get(payload["category_id"])))
+        return PublicResponseEnvelope(data=storefront.category(payload["category_id"]) or {})
 
     def categories_list(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del context, payload
-        return PublicResponseEnvelope(data={"items": [public_category(item) for item in categories.list()]})
+        return PublicResponseEnvelope(data={"items": list(storefront.categories())})
 
     def home(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del context, payload
-        return PublicResponseEnvelope(data={"items": list(query.list())[:24]})
+        return PublicResponseEnvelope(data={"items": list(storefront.list())[:24]})
 
     def catalog_page(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del context, payload
-        return PublicResponseEnvelope(data={"items": list(query.list())[:128], "categories": [public_category(item) for item in categories.list()[:128]]})
+        return PublicResponseEnvelope(data={"items": list(storefront.list())[:128], "categories": list(storefront.categories())[:128]})
 
     def category_page(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del payload
         resource_id = getattr(getattr(context, "request", None), "resource_id", None)
-        return PublicResponseEnvelope(data={"category": public_category(categories.get(resource_id)), "items": list(query.list())[:128]})
+        return PublicResponseEnvelope(data={"category": storefront.category(resource_id) or {}, "items": list(storefront.products(resource_id))[:128]})
 
     def product_page(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del payload
         resource_id = getattr(getattr(context, "request", None), "resource_id", None)
-        return PublicResponseEnvelope(data={"product": query.get(resource_id) or {}})
+        return PublicResponseEnvelope(data={"product": storefront.get(resource_id) or {}})
 
     def sitemap(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del context, payload
-        return PublicResponseEnvelope(data=[f"/product/{item['id']}" for item in query.list()[:128] if item.get("id")])
+        return PublicResponseEnvelope(data=[f"/product/{item['id']}" for item in storefront.list()[:128] if item.get("id")])
 
     runtime.public.register(PublicHandlerRef(kind=PublicDeclarationKind.QUERY, id="products"), products)
     runtime.public.register(PublicHandlerRef(kind=PublicDeclarationKind.QUERY, id="product"), product)

@@ -18,6 +18,7 @@
   ],
   "services": [
     {"contract": "catalog.query", "version": "1.0.0"},
+    {"contract": "catalog.storefront", "version": "1.0.0"},
     {"contract": "catalog.products", "version": "1.0.0"},
     {"contract": "catalog.categories", "version": "1.0.0"},
     {"contract": "catalog.attributes", "version": "1.0.0"}
@@ -30,6 +31,7 @@
   ],
   "provides": [
     {"id": "catalog.products", "version": "1.0.0"},
+    {"id": "catalog.storefront", "version": "1.0.0"},
     {"id": "catalog.categories", "version": "1.0.0"},
     {"id": "catalog.attributes", "version": "1.0.0"}
   ],
