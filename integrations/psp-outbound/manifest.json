@@ -1,0 +1,37 @@
+{
+  "id": "psp-outbound",
+  "type": "integration",
+  "version": "1.0.0",
+  "name": "PSP Outbound",
+  "core": ">=0.4.0,<0.5.0",
+  "dependencies": [
+    {"package_id": "payments", "version": ">=1.0.0,<2.0.0"}
+  ],
+  "conflicts": [],
+  "permissions": [
+    {"id": "psp-outbound.manage", "description": "Recorded outbound PSP capture"}
+  ],
+  "settings": [{"key": "provider-connection", "secret": false}],
+  "services": [
+    {"contract": "psp-outbound.charge", "version": "1.0.0"}
+  ],
+  "events": [
+    {"contract": "psp-outbound.charged", "version": "1.0.0"}
+  ],
+  "provides": [{"id": "psp-outbound.charge", "version": "1.0.0"}],
+  "requires": [{"id": "payments.capture", "version": ">=1.0.0,<2.0.0"}],
+  "migrations": [
+    {"version": "001_init", "path": "sql/001_init.sql"}
+  ],
+  "storage": [],
+  "admin": {
+    "commands": [
+      {"id": "psp-outbound.charge", "permission": "psp-outbound.manage"},
+      {"id": "psp-outbound.get", "permission": "psp-outbound.manage"}
+    ]
+  },
+  "web": {
+    "hooks": [],
+    "slots": []
+  }
+}

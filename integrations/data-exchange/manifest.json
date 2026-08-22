@@ -1,0 +1,37 @@
+{
+  "id": "data-exchange",
+  "type": "integration",
+  "version": "1.0.0",
+  "name": "Data Exchange",
+  "core": ">=0.4.0,<0.5.0",
+  "dependencies": [
+    {"package_id": "catalog", "version": ">=1.0.0,<2.0.0"}
+  ],
+  "conflicts": [],
+  "permissions": [
+    {"id": "data-exchange.manage", "description": "Import catalog JSON or CSV"}
+  ],
+  "settings": [],
+  "services": [
+    {"contract": "data-exchange.import", "version": "1.0.0"}
+  ],
+  "events": [
+    {"contract": "data-exchange.imported", "version": "1.0.0"}
+  ],
+  "provides": [{"id": "data-exchange.import", "version": "1.0.0"}],
+  "requires": [{"id": "catalog.products", "version": ">=1.0.0,<2.0.0"}],
+  "migrations": [
+    {"version": "001_init", "path": "sql/001_init.sql"}
+  ],
+  "storage": [],
+  "admin": {
+    "commands": [
+      {"id": "data-exchange.import", "permission": "data-exchange.manage"},
+      {"id": "data-exchange.get", "permission": "data-exchange.manage"}
+    ]
+  },
+  "web": {
+    "hooks": [],
+    "slots": []
+  }
+}

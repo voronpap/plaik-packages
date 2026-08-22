@@ -1,4 +1,4 @@
-"""Payments 1.0.0 domain. Depends only on public plaik-sdk."""
+"""Payments 1.0.1 domain. Depends only on public plaik-sdk."""
 
 from __future__ import annotations
 
@@ -186,14 +186,33 @@ class PaymentsEngine:
             return record
         if str(current["state"]) not in _STATES:
             raise PaymentsError("invalid state")
-        stamp = _now()
         record = dict(current)
+        self._dispatch_outbound_charge(record)
+        stamp = _now()
         record["state"] = "captured"
         record["updated_at"] = stamp
         record["captured_at"] = stamp
         self._write(record, insert=False)
         self._publish(payment_id, stamp)
         return _payment_record(record)
+
+    def _dispatch_outbound_charge(self, record: Mapping[str, Any]) -> None:
+        try:
+            charger = self.runtime.services.resolve("psp-outbound.charge", "==1.0.0")
+        except Exception as error:
+            if "no compatible active service provider" in str(error).lower():
+                return
+            raise
+        charger.charge(
+            {
+                "store_id": "ignored",
+                "owner_id": "ignored",
+                "payment_id": record["payment_id"],
+                "amount_minor": int(record["amount_minor"]),
+                "currency": record["currency"],
+                "connection_id": record.get("connection_id") or "",
+            }
+        )
 
     def _load(self, payment_id: str) -> dict[str, Any] | None:
         if not self._using_sql():

@@ -29,7 +29,17 @@ modules/checkout
 packs/auto-parts-pack
 ```
 
-Cart v1 is Admin-managed `(store_id, cart_id)`. Orders v1 stores a snapshot envelope after place. Shipping v1 is flat/manual methods + quote. Payments v1 is offline/manual capture. Promotions v1 is cart-level coupons against a quote. Checkout v1 orchestrates place without a Core saga.
+Cart v1 is Admin-managed `(store_id, cart_id)`. Orders v1 stores a snapshot envelope after place. Shipping v1 is flat/manual methods + quote. Payments v1 is offline/manual capture with optional 1.0.x outbound dispatch. Promotions v1 is cart-level coupons against a quote. Checkout v1 orchestrates place without a Core saga.
+
+## 0.6 integrations
+
+```text
+integrations/data-exchange
+integrations/psp-outbound
+packs/auto-parts-pack
+```
+
+Data Exchange v1 imports Admin JSON/CSV through `catalog.query.upsert`. PSP Outbound v1 is recorded HTTP capture behind `payments.capture`. Neither package imports `plaik_core` or stores secret values.
 
 ## Rules
 
