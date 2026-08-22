@@ -24,6 +24,13 @@ if _ADMIN_SPEC is None or _ADMIN_SPEC.loader is None:
 _admin_mod = importlib.util.module_from_spec(_ADMIN_SPEC)
 _ADMIN_SPEC.loader.exec_module(_admin_mod)
 register_admin = _admin_mod.register_admin
+_PUBLIC_PATH = Path(__file__).with_name("storefront_public.py")
+_PUBLIC_SPEC = importlib.util.spec_from_file_location("plaik_pkg_cart_public", _PUBLIC_PATH)
+if _PUBLIC_SPEC is None or _PUBLIC_SPEC.loader is None:
+    raise ImportError("cannot load storefront_public.py")
+_public_mod = importlib.util.module_from_spec(_PUBLIC_SPEC)
+_PUBLIC_SPEC.loader.exec_module(_public_mod)
+register_public = _public_mod.register_public
 
 
 def register(runtime: ExtensionRuntime) -> None:
@@ -33,3 +40,4 @@ def register(runtime: ExtensionRuntime) -> None:
     engine = CartEngine(runtime)
     runtime.services.register("cart.query", "1.0.0", CartQuery(engine))
     register_admin(runtime, engine)
+    register_public(runtime, engine, query)

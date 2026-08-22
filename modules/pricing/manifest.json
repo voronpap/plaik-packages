@@ -39,5 +39,6 @@
         "position": 100
       }
     ]
-  }
+  },
+  "public": {"queries": [{"id": "price", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}], "actions": [], "page_projections": [], "sitemap_projections": []}
 }

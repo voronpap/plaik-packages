@@ -23,7 +23,8 @@
     {"id": "pricing.list", "version": ">=1.0.0,<2.0.0"}
   ],
   "migrations": [
-    {"version": "001_init", "path": "sql/001_init.sql"}
+    {"version": "001_init", "path": "sql/001_init.sql"},
+    {"version": "002_session_owner", "path": "sql/002_session_owner.sql"}
   ],
   "storage": [],
   "admin": {
