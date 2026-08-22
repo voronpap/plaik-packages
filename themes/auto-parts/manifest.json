@@ -1,0 +1,18 @@
+{
+  "id": "auto-parts",
+  "type": "theme",
+  "version": "1.0.0",
+  "name": "PLAIK Auto Parts",
+  "core": ">=0.5.0,<0.6.0",
+  "parent": "default",
+  "layouts": ["full-width", "checkout"],
+  "assets": {"css": ["assets/css/theme.css"], "js": []},
+  "hooks": ["displayHeader", "displayContent", "displayFooter"],
+  "theme_api": 1,
+  "slots": ["storefront.header.cart", "storefront.collection.products", "storefront.product.gallery", "storefront.product.variants", "storefront.product.add-to-cart", "storefront.product.after-price", "storefront.product.availability", "storefront.search.filters", "storefront.seo.structured-data", "storefront.cart.items", "storefront.cart.summary", "storefront.cart.actions", "storefront.checkout.customer", "storefront.checkout.shipping", "storefront.checkout.payment", "storefront.checkout.review"],
+  "page_templates": ["home", "category", "search", "product", "cart", "checkout", "page", "error-404"],
+  "sections": ["header", "footer", "navigation", "product-grid", "product", "collection", "search-results", "cart", "checkout", "filters", "buy-bar", "fitment"],
+  "blocks": ["badge", "button", "heading", "image", "module-slot", "price", "product-card", "product-image", "product-metadata", "product-title", "text", "ui-state"],
+  "settings_schema": true,
+  "presets": ["auto-parts"]
+}

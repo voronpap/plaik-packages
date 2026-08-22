@@ -67,5 +67,15 @@
         "position": 100
       }
     ]
+  },
+  "public": {
+    "queries": [{"id": "cart", "access": "session_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}],
+    "actions": [
+      {"id": "add", "access": "session_action", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}, "quantity": {"type": "integer"}}, "required": ["product_id", "quantity"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}},
+      {"id": "set", "access": "session_action", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}, "quantity": {"type": "integer"}}, "required": ["product_id", "quantity"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}},
+      {"id": "remove", "access": "session_action", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}
+    ],
+    "page_projections": [],
+    "sitemap_projections": []
   }
 }

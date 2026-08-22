@@ -77,5 +77,14 @@
         "position": 100
       }
     ]
+  },
+  "public": {
+    "queries": [
+      {"id": "products", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {}, "additional_properties": true}, "max_items": 128}}, "required": ["items"], "additional_properties": false}},
+      {"id": "product", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}
+    ],
+    "actions": [],
+    "page_projections": [],
+    "sitemap_projections": [{"id": "products", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "array", "items": {"type": "object", "properties": {}, "additional_properties": true}, "max_items": 128}}]
   }
 }

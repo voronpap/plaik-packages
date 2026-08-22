@@ -1,0 +1,3 @@
+:root { --plk-accent: #e4572e; --plk-ink: #17202a; }
+.plk-auto-parts { color: var(--plk-ink); }
+.plk-auto-parts .plk-fitment { border: 1px solid #d7dce2; padding: 1rem; }
