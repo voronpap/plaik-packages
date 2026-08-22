@@ -16,6 +16,7 @@ Official PLAIK business-domain packages live here.
 - `orders` — placed orders (`orders.records` 1.0.0; identity `(store_id, order_id)`)
 - `shipping` — flat/manual methods (`shipping.methods` 1.0.0; identity `(store_id, method_id)`)
 - `payments` — manual capture (`payments.capture` 1.0.0; identity `(store_id, payment_id)`)
+- `promotions` — cart-level coupons (`promotions.coupons` 1.0.0; identity `(store_id, coupon_id)`)
 
 Modules own their data and rules. They may expose versioned services/events/hooks through `plaik-sdk`, but must not import private PLAIK Core implementation details or access another package's private storage directly.
 

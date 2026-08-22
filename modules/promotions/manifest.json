@@ -1,0 +1,42 @@
+{
+  "id": "promotions",
+  "type": "module",
+  "version": "1.0.0",
+  "name": "Promotions",
+  "core": ">=0.4.0,<0.5.0",
+  "dependencies": [],
+  "conflicts": [],
+  "permissions": [{"id": "promotions.manage", "description": "Manage store coupons"}],
+  "settings": [],
+  "services": [
+    {"contract": "promotions.query", "version": "1.0.0"}
+  ],
+  "events": [
+    {"contract": "promotions.changed", "version": "1.0.0"}
+  ],
+  "provides": [{"id": "promotions.coupons", "version": "1.0.0"}],
+  "requires": [],
+  "migrations": [
+    {"version": "001_init", "path": "sql/001_init.sql"}
+  ],
+  "storage": [],
+  "admin": {
+    "commands": [
+      {"id": "promotions.create", "permission": "promotions.manage"},
+      {"id": "promotions.list", "permission": "promotions.manage"},
+      {"id": "promotions.get", "permission": "promotions.manage"},
+      {"id": "promotions.set", "permission": "promotions.manage"},
+      {"id": "promotions.apply", "permission": "promotions.manage"}
+    ]
+  },
+  "web": {
+    "hooks": [],
+    "slots": [
+      {
+        "slot": "storefront.checkout.review",
+        "template": "coupon.html",
+        "position": 100
+      }
+    ]
+  }
+}
