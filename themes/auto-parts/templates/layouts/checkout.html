@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="{{ locale }}" data-web-theme="auto-parts" data-plaik-layout="checkout">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>{{ page.title }}</title>
+    {{ theme_assets("css") }}
+  </head>
+  <body class="plk-auto-parts plk-auto-parts-checkout">
+    <a class="plaik-skip-link" href="#main-content">{{ theme_strings.skip_to_content }}</a>
+    {{ composition }}
+    {{ slot("storefront.seo.structured-data") }}
+  </body>
+</html>

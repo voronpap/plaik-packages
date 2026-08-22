@@ -1,9 +1,9 @@
 {
   "id": "search",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "name": "Search",
-  "core": ">=0.4.0,<0.6.0",
+  "core": ">=0.5.0,<0.6.0",
   "dependencies": [{"package_id": "catalog", "version": ">=1.0.0,<2.0.0"}],
   "conflicts": [],
   "permissions": [{"id": "search.manage", "description": "Manage search facets"}],
@@ -38,5 +38,6 @@
         "position": 100
       }
     ]
-  }
+  },
+  "public": {"queries": [{"id": "search", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"q": {"type": "string", "max_length": 128}}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}], "actions": [], "page_projections": [{"id": "search", "page_key": "search", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}], "sitemap_projections": []}
 }
