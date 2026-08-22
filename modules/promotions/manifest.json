@@ -39,5 +39,5 @@
       }
     ]
   },
-  "public": {"queries": [], "actions": [{"id": "apply", "access": "session_action", "input_schema": {"type": "object", "properties": {"code": {"type": "string", "max_length": 128}}, "required": ["code"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}], "page_projections": [], "sitemap_projections": []}
+  "public": {"queries": [], "actions": [{"id": "apply", "access": "session_action", "input_schema": {"type": "object", "properties": {"code": {"type": "string", "max_length": 128}}, "required": ["code"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {"code": {"type": "string", "max_length": 128}, "goods_minor": {"type": "integer"}, "discount_amount_minor": {"type": "integer"}, "currency": {"type": "string", "max_length": 8}}, "required": ["code", "goods_minor", "discount_amount_minor", "currency"], "additional_properties": false}}], "page_projections": [], "sitemap_projections": []}
 }

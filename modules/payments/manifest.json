@@ -38,5 +38,5 @@
       }
     ]
   },
-  "public": {"queries": [{"id": "methods", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}], "actions": [], "page_projections": [], "sitemap_projections": []}
+  "public": {"queries": [{"id": "methods", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string", "max_length": 32}, "label": {"type": "string", "max_length": 128}, "offline": {"type": "boolean"}}, "required": ["id", "label", "offline"], "additional_properties": false}, "max_items": 1}}, "required": ["items"], "additional_properties": false}}], "actions": [], "page_projections": [], "sitemap_projections": []}
 }

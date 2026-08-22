@@ -40,5 +40,5 @@
       }
     ]
   },
-  "public": {"queries": [{"id": "price", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {}, "additional_properties": true}}], "actions": [], "page_projections": [], "sitemap_projections": []}
+  "public": {"queries": [{"id": "price", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}, "amount_minor": {"type": "integer"}, "currency": {"type": "string", "max_length": 8}}, "required": ["product_id", "amount_minor", "currency"], "additional_properties": false}}], "actions": [], "page_projections": [], "sitemap_projections": []}
 }

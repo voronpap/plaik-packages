@@ -13,5 +13,6 @@ def register_public(runtime: Any, query: Any) -> None:
         cart = shopper.for_subject(subject)
         quoted = runtime.services.resolve("cart.query", ">=1.0.0,<2.0.0").quote(cart["cart_id"])
         goods = sum(int(line["amount_minor"]) * int(line["quantity"]) for line in quoted["lines"])
-        return PublicResponseEnvelope(data=query.apply({"code": payload["code"], "goods_minor": goods, "currency": quoted["lines"][0]["currency"] if quoted["lines"] else ""}))
+        applied = query.apply({"code": payload["code"], "goods_minor": goods, "currency": quoted["lines"][0]["currency"] if quoted["lines"] else ""})
+        return PublicResponseEnvelope(data={key: applied[key] for key in ("code", "goods_minor", "discount_amount_minor", "currency")})
     runtime.public.register(PublicHandlerRef(kind=PublicDeclarationKind.ACTION, id="apply"), apply)
