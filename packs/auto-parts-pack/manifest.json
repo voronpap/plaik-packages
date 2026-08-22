@@ -1,7 +1,7 @@
 {
   "id": "auto-parts-pack",
   "type": "pack",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "name": "Auto Parts Pack",
   "core": ">=0.4.0,<0.5.0",
   "dependencies": [
@@ -9,7 +9,13 @@
     {"package_id": "inventory", "version": ">=1.0.0,<2.0.0"},
     {"package_id": "pricing", "version": ">=1.0.0,<2.0.0"},
     {"package_id": "search", "version": ">=1.0.0,<2.0.0"},
-    {"package_id": "seo", "version": ">=1.0.0,<2.0.0"}
+    {"package_id": "seo", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "cart", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "orders", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "shipping", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "payments", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "promotions", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "checkout", "version": ">=1.0.0,<2.0.0"}
   ],
   "conflicts": [],
   "requires": [
@@ -17,6 +23,12 @@
     {"id": "inventory.stock", "version": ">=1.0.0,<2.0.0"},
     {"id": "pricing.list", "version": ">=1.0.0,<2.0.0"},
     {"id": "search.facets", "version": ">=1.0.0,<2.0.0"},
-    {"id": "seo.storefront", "version": ">=1.0.0,<2.0.0"}
+    {"id": "seo.storefront", "version": ">=1.0.0,<2.0.0"},
+    {"id": "cart.lines", "version": ">=1.0.0,<2.0.0"},
+    {"id": "orders.records", "version": ">=1.0.0,<2.0.0"},
+    {"id": "shipping.methods", "version": ">=1.0.0,<2.0.0"},
+    {"id": "payments.capture", "version": ">=1.0.0,<2.0.0"},
+    {"id": "promotions.coupons", "version": ">=1.0.0,<2.0.0"},
+    {"id": "checkout.place", "version": ">=1.0.0,<2.0.0"}
   ]
 }
