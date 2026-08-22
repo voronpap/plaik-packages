@@ -1,7 +1,7 @@
 {
   "id": "auto-parts-pack",
   "type": "pack",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "name": "Auto Parts Pack",
   "core": ">=0.4.0,<0.5.0",
   "dependencies": [
@@ -15,7 +15,9 @@
     {"package_id": "shipping", "version": ">=1.0.0,<2.0.0"},
     {"package_id": "payments", "version": ">=1.0.0,<2.0.0"},
     {"package_id": "promotions", "version": ">=1.0.0,<2.0.0"},
-    {"package_id": "checkout", "version": ">=1.0.0,<2.0.0"}
+    {"package_id": "checkout", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "data-exchange", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "psp-outbound", "version": ">=1.0.0,<2.0.0"}
   ],
   "conflicts": [],
   "requires": [
@@ -29,6 +31,8 @@
     {"id": "shipping.methods", "version": ">=1.0.0,<2.0.0"},
     {"id": "payments.capture", "version": ">=1.0.0,<2.0.0"},
     {"id": "promotions.coupons", "version": ">=1.0.0,<2.0.0"},
-    {"id": "checkout.place", "version": ">=1.0.0,<2.0.0"}
+    {"id": "checkout.place", "version": ">=1.0.0,<2.0.0"},
+    {"id": "data-exchange.import", "version": ">=1.0.0,<2.0.0"},
+    {"id": "psp-outbound.charge", "version": ">=1.0.0,<2.0.0"}
   ]
 }

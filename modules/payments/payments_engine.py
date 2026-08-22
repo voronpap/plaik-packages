@@ -1,10 +1,11 @@
-"""Payments 1.0.0 domain. Depends only on public plaik-sdk."""
+"""Payments 1.0.1 domain. Depends only on public plaik-sdk."""
 
 from __future__ import annotations
 
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from threading import Lock
 from typing import Any
 from uuid import uuid4
 
@@ -114,6 +115,7 @@ class PaymentsEngine:
         self.store_id = runtime.store_id
         self._mode: str | None = None
         self._payments: dict[str, dict[str, Any]] = {}
+        self._lock = Lock()
 
     def _using_sql(self) -> bool:
         if self._mode is not None:
@@ -177,23 +179,58 @@ class PaymentsEngine:
 
     def capture(self, payment_id: object) -> dict[str, Any]:
         payment_id = _require_id(payment_id, field="payment_id")
-        current = self._load(payment_id)
-        if current is None:
-            raise PaymentsError("unknown payment")
-        if str(current["state"]) == "captured":
-            record = _payment_record(current)
-            self._publish(record["payment_id"], record["updated_at"] or _now())
-            return record
-        if str(current["state"]) not in _STATES:
-            raise PaymentsError("invalid state")
-        stamp = _now()
-        record = dict(current)
-        record["state"] = "captured"
-        record["updated_at"] = stamp
-        record["captured_at"] = stamp
-        self._write(record, insert=False)
-        self._publish(payment_id, stamp)
-        return _payment_record(record)
+        with self._lock:
+            current = self._load(payment_id)
+            if current is None:
+                raise PaymentsError("unknown payment")
+            if str(current["state"]) == "captured":
+                record = _payment_record(current)
+                self._publish(record["payment_id"], record["updated_at"] or _now())
+                return record
+            if str(current["state"]) not in _STATES:
+                raise PaymentsError("invalid state")
+            self._dispatch_outbound_charge(current)
+            stamp = _now()
+            self._commit_captured(str(current["payment_id"]), stamp)
+            loaded = self._load(payment_id)
+            if loaded is None:
+                raise PaymentsError("unknown payment")
+            self._publish(payment_id, stamp)
+            return _payment_record(loaded)
+
+    def _dispatch_outbound_charge(self, record: Mapping[str, Any]) -> None:
+        try:
+            charger = self.runtime.services.resolve("psp-outbound.charge", "==1.0.0")
+        except Exception as error:
+            if "no compatible active service provider" in str(error).lower():
+                return
+            raise
+        charger.charge(
+            {
+                "store_id": "ignored",
+                "owner_id": "ignored",
+                "payment_id": record["payment_id"],
+                "amount_minor": int(record["amount_minor"]),
+                "currency": record["currency"],
+                "connection_id": record.get("connection_id") or "",
+            }
+        )
+
+    def _commit_captured(self, payment_id: str, stamp: str) -> None:
+        if not self._using_sql():
+            current = self._payments.get(payment_id)
+            if current is None or str(current["state"]) != "open":
+                return
+            current["state"] = "captured"
+            current["updated_at"] = stamp
+            current["captured_at"] = stamp
+            return
+        with self.runtime.sql.transaction() as tx:
+            tx.execute(
+                "UPDATE payments SET state = %s, updated_at = %s, captured_at = %s "
+                "WHERE store_id = %s AND payment_id = %s AND state = %s",
+                ("captured", stamp, stamp, self.store_id, payment_id, "open"),
+            )
 
     def _load(self, payment_id: str) -> dict[str, Any] | None:
         if not self._using_sql():
