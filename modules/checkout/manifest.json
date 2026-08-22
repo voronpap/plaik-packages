@@ -1,0 +1,56 @@
+{
+  "id": "checkout",
+  "type": "module",
+  "version": "1.0.0",
+  "name": "Checkout",
+  "core": ">=0.4.0,<0.5.0",
+  "dependencies": [
+    {"package_id": "catalog", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "pricing", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "inventory", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "cart", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "orders", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "shipping", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "payments", "version": ">=1.0.0,<2.0.0"},
+    {"package_id": "promotions", "version": ">=1.0.0,<2.0.0"}
+  ],
+  "conflicts": [],
+  "permissions": [{"id": "checkout.manage", "description": "Place store checkout orders"}],
+  "settings": [],
+  "services": [
+    {"contract": "checkout.query", "version": "1.0.0"}
+  ],
+  "events": [
+    {"contract": "checkout.placed", "version": "1.0.0"}
+  ],
+  "provides": [{"id": "checkout.place", "version": "1.0.0"}],
+  "requires": [
+    {"id": "catalog.products", "version": ">=1.0.0,<2.0.0"},
+    {"id": "pricing.list", "version": ">=1.0.0,<2.0.0"},
+    {"id": "inventory.stock", "version": ">=1.0.0,<2.0.0"},
+    {"id": "cart.lines", "version": ">=1.0.0,<2.0.0"},
+    {"id": "orders.records", "version": ">=1.0.0,<2.0.0"},
+    {"id": "shipping.methods", "version": ">=1.0.0,<2.0.0"},
+    {"id": "payments.capture", "version": ">=1.0.0,<2.0.0"},
+    {"id": "promotions.coupons", "version": ">=1.0.0,<2.0.0"}
+  ],
+  "migrations": [
+    {"version": "001_init", "path": "sql/001_init.sql"}
+  ],
+  "storage": [],
+  "admin": {
+    "commands": [
+      {"id": "checkout.place", "permission": "checkout.manage"}
+    ]
+  },
+  "web": {
+    "hooks": [],
+    "slots": [
+      {
+        "slot": "storefront.checkout.customer",
+        "template": "contact.html",
+        "position": 100
+      }
+    ]
+  }
+}
