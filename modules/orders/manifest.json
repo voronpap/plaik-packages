@@ -1,0 +1,41 @@
+{
+  "id": "orders",
+  "type": "module",
+  "version": "1.0.0",
+  "name": "Orders",
+  "core": ">=0.4.0,<0.5.0",
+  "dependencies": [],
+  "conflicts": [],
+  "permissions": [{"id": "orders.manage", "description": "Manage store orders"}],
+  "settings": [],
+  "services": [
+    {"contract": "orders.query", "version": "1.0.0"}
+  ],
+  "events": [
+    {"contract": "orders.placed", "version": "1.0.0"}
+  ],
+  "provides": [{"id": "orders.records", "version": "1.0.0"}],
+  "requires": [],
+  "migrations": [
+    {"version": "001_init", "path": "sql/001_init.sql"}
+  ],
+  "storage": [],
+  "admin": {
+    "commands": [
+      {"id": "orders.place", "permission": "orders.manage"},
+      {"id": "orders.list", "permission": "orders.manage"},
+      {"id": "orders.get", "permission": "orders.manage"},
+      {"id": "orders.set_payment_state", "permission": "orders.manage"}
+    ]
+  },
+  "web": {
+    "hooks": [],
+    "slots": [
+      {
+        "slot": "storefront.checkout.review",
+        "template": "review.html",
+        "position": 100
+      }
+    ]
+  }
+}
