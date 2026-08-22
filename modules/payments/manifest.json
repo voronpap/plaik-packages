@@ -1,0 +1,41 @@
+{
+  "id": "payments",
+  "type": "module",
+  "version": "1.0.0",
+  "name": "Payments",
+  "core": ">=0.4.0,<0.5.0",
+  "dependencies": [],
+  "conflicts": [],
+  "permissions": [{"id": "payments.manage", "description": "Manage store payments"}],
+  "settings": [{"key": "provider-connection", "secret": false}],
+  "services": [
+    {"contract": "payments.query", "version": "1.0.0"}
+  ],
+  "events": [
+    {"contract": "payments.captured", "version": "1.0.0"}
+  ],
+  "provides": [{"id": "payments.capture", "version": "1.0.0"}],
+  "requires": [],
+  "migrations": [
+    {"version": "001_init", "path": "sql/001_init.sql"}
+  ],
+  "storage": [],
+  "admin": {
+    "commands": [
+      {"id": "payments.create", "permission": "payments.manage"},
+      {"id": "payments.list", "permission": "payments.manage"},
+      {"id": "payments.get", "permission": "payments.manage"},
+      {"id": "payments.capture", "permission": "payments.manage"}
+    ]
+  },
+  "web": {
+    "hooks": [],
+    "slots": [
+      {
+        "slot": "storefront.checkout.payment",
+        "template": "manual.html",
+        "position": 100
+      }
+    ]
+  }
+}
