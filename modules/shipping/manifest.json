@@ -1,0 +1,42 @@
+{
+  "id": "shipping",
+  "type": "module",
+  "version": "1.0.0",
+  "name": "Shipping",
+  "core": ">=0.4.0,<0.5.0",
+  "dependencies": [],
+  "conflicts": [],
+  "permissions": [{"id": "shipping.manage", "description": "Manage store shipping methods"}],
+  "settings": [],
+  "services": [
+    {"contract": "shipping.query", "version": "1.0.0"}
+  ],
+  "events": [
+    {"contract": "shipping.changed", "version": "1.0.0"}
+  ],
+  "provides": [{"id": "shipping.methods", "version": "1.0.0"}],
+  "requires": [],
+  "migrations": [
+    {"version": "001_init", "path": "sql/001_init.sql"}
+  ],
+  "storage": [],
+  "admin": {
+    "commands": [
+      {"id": "shipping.create", "permission": "shipping.manage"},
+      {"id": "shipping.list", "permission": "shipping.manage"},
+      {"id": "shipping.get", "permission": "shipping.manage"},
+      {"id": "shipping.set", "permission": "shipping.manage"},
+      {"id": "shipping.quote", "permission": "shipping.manage"}
+    ]
+  },
+  "web": {
+    "hooks": [],
+    "slots": [
+      {
+        "slot": "storefront.checkout.shipping",
+        "template": "methods.html",
+        "position": 100
+      }
+    ]
+  }
+}

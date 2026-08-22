@@ -14,6 +14,7 @@ Official PLAIK business-domain packages live here.
 
 - `cart` — Admin-managed carts (`cart.lines` 1.0.0; identity `(store_id, cart_id)`)
 - `orders` — placed orders (`orders.records` 1.0.0; identity `(store_id, order_id)`)
+- `shipping` — flat/manual methods (`shipping.methods` 1.0.0; identity `(store_id, method_id)`)
 
 Modules own their data and rules. They may expose versioned services/events/hooks through `plaik-sdk`, but must not import private PLAIK Core implementation details or access another package's private storage directly.
 
