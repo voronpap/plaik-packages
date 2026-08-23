@@ -21,6 +21,10 @@ _PRODUCT_COLUMNS = (
     "id, store_id, sku, slug, title, status, kind, parent_id, brand_id, "
     "created_at, updated_at"
 )
+_PRODUCT_JOIN_COLUMNS = (
+    "p.id, p.store_id, p.sku, p.slug, p.title, p.status, p.kind, p.parent_id, "
+    "p.brand_id, p.created_at, p.updated_at"
+)
 
 
 class CatalogError(ValueError):
@@ -1132,7 +1136,7 @@ class CatalogStorefront:
         if self._engine._using_sql():
             with self._engine.runtime.sql.transaction() as tx:
                 rows = tx.fetchall(
-                    "SELECT " + _PRODUCT_COLUMNS + " FROM products p "
+                    "SELECT " + _PRODUCT_JOIN_COLUMNS + " FROM products p "
                     "JOIN product_categories pc ON pc.store_id = p.store_id AND pc.product_id = p.id "
                     "WHERE p.store_id = %s AND pc.category_id = %s AND p.status = %s ORDER BY p.slug",
                     (self._engine.store_id, category_id, "published"),

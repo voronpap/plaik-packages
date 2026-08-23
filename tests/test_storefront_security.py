@@ -7,6 +7,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+from contextlib import contextmanager
 
 
 ROOT = Path(__file__).parents[1] / "modules"
@@ -135,6 +136,31 @@ def test_catalog_category_membership_is_published_only() -> None:
     storefront = catalog.CatalogStorefront(engine)
     assert [row["id"] for row in storefront.products("brakes")] == ["live"]
     assert storefront.category("brakes")["id"] == "brakes"
+
+
+def test_catalog_category_sql_qualifies_joined_product_columns() -> None:
+    catalog = load("catalog", "catalog_engine")
+    statements: list[str] = []
+
+    class Transaction:
+        def fetchall(self, sql, _params):
+            statements.append(sql)
+            return []
+
+    class SQL:
+        @contextmanager
+        def transaction(self):
+            yield Transaction()
+
+    class Runtime:
+        store_id = "test-store"
+        sql = SQL()
+
+    engine = catalog.CatalogEngine(Runtime())
+    engine._mode = "sql"
+    assert catalog.CatalogStorefront(engine).products("brakes") == ()
+    assert statements and "SELECT p.id, p.store_id, p.sku" in statements[0]
+    assert "JOIN product_categories" in statements[0]
 
 
 def test_auto_parts_browser_client_uses_fixed_safe_public_boundary() -> None:
