@@ -1137,6 +1137,32 @@ class CatalogStorefront:
             for product in published
         )
 
+    def published_ids(self) -> tuple[str, ...]:
+        """Return bounded published product ids without hydrating product attributes."""
+
+        if self._engine._using_sql():
+            with self._engine.runtime.sql.transaction() as tx:
+                rows = tx.fetchall(
+                    "SELECT id FROM products "
+                    "WHERE store_id = %s AND status = %s "
+                    "ORDER BY id LIMIT %s",
+                    (
+                        self._engine.store_id,
+                        "published",
+                        _STOREFRONT_LIMIT,
+                    ),
+                )
+            return tuple(str(row["id"]) for row in rows)
+
+        return tuple(
+            sorted(
+                str(product["id"])
+                for product in self._engine._products.values()
+                if product.get("status") == "published"
+                and product.get("id")
+            )[:_STOREFRONT_LIMIT]
+        )
+
     def category(self, category_id: str) -> dict | None:
         category = self._engine.get_category(_require_id(category_id, field="category_id"))
         if category is None:

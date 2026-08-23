@@ -140,6 +140,41 @@ class PricingEngine:
             )
         return tuple(_price_record(row) for row in rows)
 
+    def list_prices_for(
+        self,
+        product_ids: object,
+    ) -> tuple[dict[str, Any], ...]:
+        if not isinstance(product_ids, (list, tuple, set, frozenset)):
+            raise PricingError("product_ids must be a collection")
+
+        identifiers = tuple(
+            dict.fromkeys(_require_id(value) for value in product_ids)
+        )
+        if len(identifiers) > 128:
+            raise PricingError("product_ids exceeds storefront bound")
+        if not identifiers:
+            return ()
+
+        if not self._using_sql():
+            return tuple(
+                dict(self._prices[product_id])
+                for product_id in identifiers
+                if product_id in self._prices
+            )
+
+        placeholders = ", ".join("%s" for _ in identifiers)
+        with self.runtime.sql.transaction() as tx:
+            rows = tx.fetchall(
+                "SELECT store_id, product_id, amount_minor, currency, "
+                "created_at, updated_at FROM list_prices "
+                "WHERE store_id = %s AND product_id IN ("
+                + placeholders
+                + ") ORDER BY product_id",
+                (self.store_id, *identifiers),
+            )
+
+        return tuple(_price_record(row) for row in rows)
+
     def set_price(self, product_id: object, amount_minor: object) -> dict[str, Any]:
         product_id = _require_id(product_id)
         amount_minor = _require_amount(amount_minor)
@@ -237,6 +272,12 @@ class PricingQuery:
 
     def list(self) -> tuple[dict, ...]:
         return tuple(_facade_record(item) for item in self._engine.list_prices())
+
+    def list_for(self, product_ids) -> tuple[dict, ...]:
+        return tuple(
+            _facade_record(item)
+            for item in self._engine.list_prices_for(product_ids)
+        )
 
     def set(self, product_id, amount_minor: int) -> dict:
         return _facade_record(self._engine.set_price(product_id, amount_minor))

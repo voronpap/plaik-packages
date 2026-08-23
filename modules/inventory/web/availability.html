@@ -1,1 +1,9 @@
-<aside class="plk-availability" data-plaik-package="inventory" aria-live="polite">Availability is confirmed during checkout.</aside>
+{% if storefront and "product" in storefront and storefront.product %}
+<p
+  class="plk-availability"
+  data-plaik-availability
+  data-product-id="{{ storefront.product.id }}"
+  data-plaik-package="inventory"
+  aria-live="polite"
+>Перевіряємо наявність…</p>
+{% endif %}

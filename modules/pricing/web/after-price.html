@@ -1,1 +1,9 @@
-<aside class="plk-price-note" data-plaik-package="pricing">Price and currency are shown from the active price list.</aside>
+{% if storefront and "product" in storefront and storefront.product %}
+<p
+  class="plk-product-price"
+  data-plaik-price
+  data-product-id="{{ storefront.product.id }}"
+  data-plaik-package="pricing"
+  aria-live="polite"
+>Завантаження ціни…</p>
+{% endif %}

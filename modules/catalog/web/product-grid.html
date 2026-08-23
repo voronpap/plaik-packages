@@ -1,12 +1,41 @@
-<section class="plk-product-grid" aria-label="Products" data-plaik-package="catalog">
+<section class="plk-product-grid" aria-label="Товари" data-plaik-package="catalog">
   {% if storefront and "items" in storefront and storefront["items"] %}
     {% for product in storefront["items"] %}
-      <article class="plk-product-card">
-        <p class="plk-product-card__sku">{{ product.sku }}</p>
-        <h2><a href="/product/{{ product.id }}">{{ product.title }}</a></h2>
+      <article class="plk-product-card" data-plaik-product-id="{{ product.id }}">
+        <a class="plk-product-card__image" href="/product/{{ product.id }}" aria-label="{{ product.title }}">
+          <span aria-hidden="true">PLAIK</span>
+        </a>
+
+        <div class="plk-product-card__content">
+          <p class="plk-product-card__sku">{{ product.sku }}</p>
+
+          <h2 class="plk-product-card__title">
+            <a href="/product/{{ product.id }}">{{ product.title }}</a>
+          </h2>
+
+          <div class="plk-product-card__commerce">
+            <p
+              class="plk-product-card__price"
+              data-plaik-price
+              data-product-id="{{ product.id }}"
+              aria-live="polite"
+            >Завантаження ціни…</p>
+
+            <p
+              class="plk-product-card__stock"
+              data-plaik-availability
+              data-product-id="{{ product.id }}"
+              aria-live="polite"
+            >Перевіряємо наявність…</p>
+          </div>
+
+          <a class="plk-product-card__details" href="/product/{{ product.id }}">
+            Детальніше
+          </a>
+        </div>
       </article>
     {% endfor %}
   {% else %}
-    <p data-plaik-products>No published products yet.</p>
+    <p data-plaik-products>Опублікованих товарів поки немає.</p>
   {% endif %}
 </section>

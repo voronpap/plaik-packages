@@ -1,11 +1,274 @@
-:root { --plk-accent: #e4572e; --plk-ink: #17202a; }
-.plk-auto-parts { color: var(--plk-ink); }
-.plk-auto-parts .plk-fitment { border: 1px solid #d7dce2; padding: 1rem; }
-.plk-product-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
-.plk-product-card, .plk-cart-items li { border: 1px solid #d7dce2; border-radius: .5rem; padding: 1rem; }
-.plk-product-card__sku { color: #59636e; font-size: .875rem; }
-.plk-action-form, [data-plaik-checkout-place] section { display: grid; gap: .75rem; max-width: 42rem; }
-.plk-action-form label, [data-plaik-checkout-place] label { display: grid; gap: .25rem; }
-.plk-action-status[data-state="error"] { color: #a31515; }
-.plk-action-status[data-state="success"] { color: #176b35; }
-[aria-busy="true"] { opacity: .7; pointer-events: none; }
+:root {
+  --plk-accent: #e4572e;
+  --plk-accent-dark: #bf3d1d;
+  --plk-ink: #17202a;
+  --plk-muted: #66727d;
+  --plk-border: #dde2e7;
+  --plk-surface: #ffffff;
+  --plk-background: #f4f6f8;
+  --plk-success: #177245;
+  --plk-danger: #a31515;
+}
+
+body.plk-auto-parts {
+  margin: 0;
+  background: var(--plk-background);
+  color: var(--plk-ink);
+}
+
+.plk-auto-parts .plaik-header,
+.plk-auto-parts .plaik-footer,
+.plk-auto-parts .plaik-collection,
+.plk-auto-parts .plaik-product {
+  width: min(1180px, calc(100% - 32px));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.plk-auto-parts .plaik-header {
+  margin-top: 16px;
+  margin-bottom: 28px;
+  padding: 16px 20px;
+  background: var(--plk-surface);
+  border: 1px solid var(--plk-border);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(23, 32, 42, .06);
+}
+
+.plk-auto-parts .plaik-brand {
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.plk-auto-parts .plaik-brand-mark {
+  background: var(--plk-accent);
+  color: #fff;
+}
+
+.plk-cart-link a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  background: var(--plk-ink);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.plk-auto-parts .plaik-collection {
+  padding-bottom: 40px;
+}
+
+.plk-auto-parts .plaik-collection > h1 {
+  margin: 0 0 22px;
+  font-size: clamp(28px, 4vw, 42px);
+}
+
+.plk-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 18px;
+}
+
+.plk-product-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--plk-surface);
+  border: 1px solid var(--plk-border);
+  border-radius: 14px;
+  box-shadow: 0 5px 20px rgba(23, 32, 42, .05);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.plk-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(23, 32, 42, .10);
+}
+
+.plk-product-card__image {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  background:
+    linear-gradient(135deg, rgba(228, 87, 46, .12), rgba(23, 32, 42, .04));
+  color: rgba(23, 32, 42, .22);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-decoration: none;
+}
+
+.plk-product-card__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 16px;
+}
+
+.plk-product-card__sku {
+  margin: 0 0 7px;
+  color: var(--plk-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.plk-product-card__title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.plk-product-card__title a {
+  color: var(--plk-ink);
+  text-decoration: none;
+}
+
+.plk-product-card__commerce {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.plk-product-card__price,
+.plk-product-price {
+  margin: 0 0 7px;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.plk-product-card__stock,
+.plk-availability {
+  margin: 0 0 14px;
+  color: var(--plk-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+[data-plaik-availability][data-state="in-stock"] {
+  color: var(--plk-success);
+}
+
+[data-plaik-availability][data-state="out-of-stock"],
+[data-plaik-price][data-state="error"],
+[data-plaik-availability][data-state="error"] {
+  color: var(--plk-danger);
+}
+
+.plk-product-card__details,
+.plk-add-to-cart {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--plk-accent);
+  color: #fff;
+  text-decoration: none;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.plk-product-card__details:hover,
+.plk-add-to-cart:hover {
+  background: var(--plk-accent-dark);
+}
+
+.plk-auto-parts .plaik-product {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, .8fr);
+  gap: 40px;
+  padding-bottom: 48px;
+}
+
+.plk-product-gallery,
+.plk-auto-parts .plaik-product-info {
+  padding: 24px;
+  background: var(--plk-surface);
+  border: 1px solid var(--plk-border);
+  border-radius: 14px;
+}
+
+.plk-auto-parts .plaik-product-info > h1,
+.plk-auto-parts .plaik-product-info > .plaik-price {
+  display: none;
+}
+
+.plk-product-image {
+  min-height: 300px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(228, 87, 46, .12), rgba(23, 32, 42, .04));
+}
+
+.plk-action-form {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+}
+
+.plk-action-form label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.plk-action-form input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--plk-border);
+  border-radius: 9px;
+  font: inherit;
+}
+
+.plk-action-status[data-state="error"] {
+  color: var(--plk-danger);
+}
+
+.plk-action-status[data-state="success"] {
+  color: var(--plk-success);
+}
+
+[aria-busy="true"] {
+  opacity: .7;
+  pointer-events: none;
+}
+
+.plk-auto-parts .plaik-footer {
+  margin-top: 24px;
+  margin-bottom: 24px;
+  padding: 22px;
+  color: var(--plk-muted);
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .plk-auto-parts .plaik-header,
+  .plk-auto-parts .plaik-footer,
+  .plk-auto-parts .plaik-collection,
+  .plk-auto-parts .plaik-product {
+    width: min(100% - 20px, 1180px);
+  }
+
+  .plk-auto-parts .plaik-product {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .plk-product-grid {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px;
+  }
+
+  .plk-product-card__content {
+    padding: 12px;
+  }
+}

@@ -1,7 +1,10 @@
 {% if storefront and "product" in storefront and storefront.product %}
 <form class="plk-action-form" data-plaik-cart-add data-product-id="{{ storefront.product.id }}">
-  <label>Quantity <input name="quantity" type="number" min="1" max="100" value="1" required></label>
-  <button type="submit" class="plk-add-to-cart">Add to cart</button>
+  <label>
+    Кількість
+    <input name="quantity" type="number" min="1" max="100" value="1" required>
+  </label>
+  <button type="submit" class="plk-add-to-cart">Додати у кошик</button>
   <output class="plk-action-status" aria-live="polite"></output>
 </form>
 {% endif %}

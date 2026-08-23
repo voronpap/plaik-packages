@@ -1,33 +1,89 @@
 {
   "id": "pricing",
   "type": "module",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "name": "Pricing",
   "core": ">=0.5.0,<0.6.0",
-  "dependencies": [{"package_id": "catalog", "version": ">=1.0.0,<2.0.0"}],
+  "dependencies": [
+    {
+      "package_id": "catalog",
+      "version": ">=1.0.0,<2.0.0"
+    }
+  ],
   "conflicts": [],
-  "permissions": [{"id": "pricing.manage", "description": "Manage list prices"}],
-  "settings": [{"key": "currency", "secret": false}],
+  "permissions": [
+    {
+      "id": "pricing.manage",
+      "description": "Manage list prices"
+    }
+  ],
+  "settings": [
+    {
+      "key": "currency",
+      "secret": false
+    }
+  ],
   "services": [
-    {"contract": "pricing.query", "version": "1.0.0"},
-    {"contract": "pricing.list", "version": "1.0.0"}
+    {
+      "contract": "pricing.query",
+      "version": "1.0.0"
+    },
+    {
+      "contract": "pricing.list",
+      "version": "1.0.0"
+    }
   ],
   "events": [
-    {"contract": "pricing.changed", "version": "1.0.0"},
-    {"contract": "pricing.listChanged", "version": "1.0.0"}
+    {
+      "contract": "pricing.changed",
+      "version": "1.0.0"
+    },
+    {
+      "contract": "pricing.listChanged",
+      "version": "1.0.0"
+    }
   ],
-  "provides": [{"id": "pricing.list", "version": "1.0.0"}],
-  "requires": [{"id": "catalog.products", "version": ">=1.0.0,<2.0.0"}, {"id": "catalog.storefront", "version": ">=1.0.0,<2.0.0"}],
+  "provides": [
+    {
+      "id": "pricing.list",
+      "version": "1.0.0"
+    }
+  ],
+  "requires": [
+    {
+      "id": "catalog.products",
+      "version": ">=1.0.0,<2.0.0"
+    },
+    {
+      "id": "catalog.storefront",
+      "version": ">=1.0.0,<2.0.0"
+    }
+  ],
   "migrations": [
-    {"version": "001_init", "path": "sql/001_init.sql"},
-    {"version": "002_pricing_v1", "path": "sql/002_pricing_v1.sql"}
+    {
+      "version": "001_init",
+      "path": "sql/001_init.sql"
+    },
+    {
+      "version": "002_pricing_v1",
+      "path": "sql/002_pricing_v1.sql"
+    }
   ],
   "storage": [],
   "admin": {
     "commands": [
-      {"id": "pricing.list.list", "permission": "pricing.manage"},
-      {"id": "pricing.list.get", "permission": "pricing.manage"},
-      {"id": "pricing.list.set", "permission": "pricing.manage"}
+      {
+        "id": "pricing.list.list",
+        "permission": "pricing.manage"
+      },
+      {
+        "id": "pricing.list.get",
+        "permission": "pricing.manage"
+      },
+      {
+        "id": "pricing.list.set",
+        "permission": "pricing.manage"
+      }
     ]
   },
   "web": {
@@ -40,5 +96,94 @@
       }
     ]
   },
-  "public": {"queries": [{"id": "price", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}, "amount_minor": {"type": "integer"}, "currency": {"type": "string", "max_length": 8}}, "required": ["product_id", "amount_minor", "currency"], "additional_properties": false}}], "actions": [], "page_projections": [], "sitemap_projections": []}
+  "public": {
+    "queries": [
+      {
+        "id": "price",
+        "access": "anonymous_read",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "product_id": {
+              "type": "string",
+              "max_length": 128
+            }
+          },
+          "required": [
+            "product_id"
+          ],
+          "additional_properties": false
+        },
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "product_id": {
+              "type": "string",
+              "max_length": 128
+            },
+            "amount_minor": {
+              "type": "integer"
+            },
+            "currency": {
+              "type": "string",
+              "max_length": 8
+            }
+          },
+          "required": [
+            "product_id",
+            "amount_minor",
+            "currency"
+          ],
+          "additional_properties": false
+        }
+      },
+      {
+        "id": "prices",
+        "access": "anonymous_read",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "additional_properties": false
+        },
+        "response_schema": {
+          "type": "object",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "product_id": {
+                    "type": "string",
+                    "max_length": 128
+                  },
+                  "amount_minor": {
+                    "type": "integer"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "max_length": 8
+                  }
+                },
+                "required": [
+                  "product_id",
+                  "amount_minor",
+                  "currency"
+                ],
+                "additional_properties": false
+              },
+              "max_items": 128
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additional_properties": false
+        }
+      }
+    ],
+    "actions": [],
+    "page_projections": [],
+    "sitemap_projections": []
+  }
 }

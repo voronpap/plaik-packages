@@ -129,6 +129,40 @@ class InventoryEngine:
             )
         return tuple(_stock_record(row) for row in rows)
 
+    def list_stock_for(
+        self,
+        product_ids: object,
+    ) -> tuple[dict[str, Any], ...]:
+        if not isinstance(product_ids, (list, tuple, set, frozenset)):
+            raise InventoryError("product_ids must be a collection")
+
+        identifiers = tuple(
+            dict.fromkeys(_require_id(value) for value in product_ids)
+        )
+        if len(identifiers) > 128:
+            raise InventoryError("product_ids exceeds storefront bound")
+        if not identifiers:
+            return ()
+
+        if not self._using_sql():
+            return tuple(
+                dict(self._stock[product_id])
+                for product_id in identifiers
+                if product_id in self._stock
+            )
+
+        placeholders = ", ".join("%s" for _ in identifiers)
+        with self.runtime.sql.transaction() as tx:
+            rows = tx.fetchall(
+                "SELECT store_id, product_id, quantity, created_at, updated_at "
+                "FROM stock_items WHERE store_id = %s AND product_id IN ("
+                + placeholders
+                + ") ORDER BY product_id",
+                (self.store_id, *identifiers),
+            )
+
+        return tuple(_stock_record(row) for row in rows)
+
     def get_quantity(self, product_id: object) -> int:
         record = self.get_stock(product_id)
         if record is None:
@@ -235,6 +269,15 @@ class InventoryQuery:
         return tuple(
             {"product_id": item["product_id"], "quantity": item["quantity"]}
             for item in self._engine.list_stock()
+        )
+
+    def list_for(self, product_ids) -> tuple[dict, ...]:
+        return tuple(
+            {
+                "product_id": item["product_id"],
+                "quantity": item["quantity"],
+            }
+            for item in self._engine.list_stock_for(product_ids)
         )
 
     def set(self, product_id, quantity: int) -> dict:
