@@ -1,1 +1,7 @@
-<section data-plaik-package="catalog" data-plaik-slot="storefront.product.gallery"></section>
+<section class="plk-product-gallery" aria-label="Product" data-plaik-package="catalog">
+  {% if storefront and storefront.product %}
+    <div class="plk-product-image" aria-hidden="true"></div>
+    <p class="plk-product-card__sku">{{ storefront.product.sku }}</p>
+    <h1>{{ storefront.product.title }}</h1>
+  {% endif %}
+</section>

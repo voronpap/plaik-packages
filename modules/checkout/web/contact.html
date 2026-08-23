@@ -1,1 +1,23 @@
-<section data-plaik-package="checkout" data-plaik-slot="storefront.checkout.customer"></section>
+<form id="plk-checkout-form" data-plaik-checkout-place>
+  <section data-plaik-package="checkout">
+    <h2>Contact details</h2>
+    <label>Name <input name="contact_name" maxlength="512" autocomplete="name"></label>
+    <label>Email <input name="contact_email" type="email" maxlength="512" autocomplete="email"></label>
+    <label>Phone <input name="contact_phone" maxlength="128" autocomplete="tel"></label>
+    <label>Address <input name="address_line" maxlength="512" autocomplete="street-address"></label>
+    <label>City <input name="address_city" maxlength="128" autocomplete="address-level2"></label>
+    <label>Postal code <input name="address_postal" maxlength="64" autocomplete="postal-code"></label>
+    <label>Country <input name="address_country" maxlength="8" autocomplete="country" value="UA"></label>
+    <label>Delivery
+      <select name="shipping_method_id" required>
+        {% if storefront and storefront.shipping_methods %}{% for method in storefront.shipping_methods %}
+          <option value="{{ method.method_id }}">{{ method.name }} — {{ method.amount_minor }} {{ method.currency }}</option>
+        {% endfor %}{% endif %}
+      </select>
+    </label>
+    <label>Coupon <input name="coupon_code" maxlength="128" autocomplete="off"></label>
+    <input name="payment_method" type="hidden" value="{% if storefront and storefront.payment_method %}{{ storefront.payment_method }}{% else %}manual{% endif %}">
+    <button type="submit">Place order</button>
+    <output class="plk-action-status" aria-live="polite"></output>
+  </section>
+</form>

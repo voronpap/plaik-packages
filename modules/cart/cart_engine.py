@@ -11,6 +11,7 @@ from uuid import uuid4
 from plaik_sdk import ExtensionRuntime
 
 _RESOURCE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+_MAX_PUBLIC_QUANTITY = 100
 
 
 class CartError(ValueError):
@@ -36,6 +37,8 @@ def _require_quantity(value: object) -> int:
         raise CartError("invalid quantity")
     if value < 1:
         raise CartError("quantity must be >= 1")
+    if value > _MAX_PUBLIC_QUANTITY:
+        raise CartError("quantity exceeds the permitted limit")
     return value
 
 
@@ -121,7 +124,7 @@ class CartEngine:
         if not callable(resolve):
             raise CartError("catalog is unavailable")
         try:
-            catalog = resolve("catalog.query", ">=1.0.0,<2.0.0")
+            catalog = resolve("catalog.storefront", ">=1.0.0,<2.0.0")
         except Exception as error:
             raise CartError("catalog is unavailable") from error
         getter = getattr(catalog, "get", None)
@@ -153,7 +156,12 @@ class CartEngine:
             return None
         return {"amount_minor": amount, "currency": currency}
 
-    def create_cart(self) -> dict[str, Any]:
+    def create_cart(self, *, owner_subject: str | None = None) -> dict[str, Any]:
+        """Create a cart, optionally bound to the opaque shopper subject.
+
+        ``owner_subject`` is supplied only by the public boundary.  It is the
+        Core-issued opaque handle, never a browser cookie or request value.
+        """
         cart_id = _new_id()
         stamp = _now()
         if not self._using_sql():
@@ -162,6 +170,7 @@ class CartEngine:
                 "cart_id": cart_id,
                 "created_at": stamp,
                 "updated_at": stamp,
+                "owner_subject": owner_subject,
             }
             self._emit(cart_id=cart_id, action="created", stamp=stamp)
             return _cart_record(
@@ -173,9 +182,9 @@ class CartEngine:
             )
         with self.runtime.sql.transaction() as tx:
             tx.execute(
-                "INSERT INTO carts (store_id, cart_id, created_at, updated_at) "
-                "VALUES (%s, %s, %s, %s)",
-                (self.store_id, cart_id, stamp, stamp),
+                "INSERT INTO carts (store_id, cart_id, created_at, updated_at, owner_subject) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (self.store_id, cart_id, stamp, stamp, owner_subject),
             )
         self._emit(cart_id=cart_id, action="created", stamp=stamp)
         return _cart_record(
@@ -185,6 +194,45 @@ class CartEngine:
             updated_at=stamp,
             lines=(),
         )
+
+    def cart_for_subject(self, owner_subject: object) -> dict[str, Any]:
+        """Return the single cart owned by a resolved public subject.
+
+        The method deliberately has no public cart-id input.  This prevents a
+        shopper from selecting another shopper's cart by guessing an id.
+        """
+        subject = _require_id(owner_subject, field="owner_subject")
+        if not self._using_sql():
+            for cart_id, record in self._carts.items():
+                if record.get("owner_subject") == subject:
+                    cart = self.get_cart(cart_id)
+                    if cart is not None:
+                        return cart
+            return self.create_cart(owner_subject=subject)
+        with self.runtime.sql.transaction() as tx:
+            row = tx.fetchone(
+                "SELECT cart_id FROM carts WHERE store_id = %s AND owner_subject = %s",
+                (self.store_id, subject),
+            )
+        if row is not None:
+            cart = self.get_cart(str(row["cart_id"]))
+            if cart is not None:
+                return cart
+        try:
+            return self.create_cart(owner_subject=subject)
+        except Exception:
+            # A concurrent request may have won the unique owner index.
+            with self.runtime.sql.transaction() as tx:
+                row = tx.fetchone(
+                    "SELECT cart_id FROM carts WHERE store_id = %s AND owner_subject = %s",
+                    (self.store_id, subject),
+                )
+            if row is None:
+                raise
+            cart = self.get_cart(str(row["cart_id"]))
+            if cart is None:
+                raise CartError("owned cart is unavailable")
+            return cart
 
     def get_cart(self, cart_id: object) -> dict[str, Any] | None:
         cart_id = _require_id(cart_id, field="cart_id")
@@ -230,6 +278,8 @@ class CartEngine:
         self._require_product(product_id)
         existing = self._line(cart_id, product_id)
         next_qty = quantity if existing is None else int(existing["quantity"]) + quantity
+        if next_qty > _MAX_PUBLIC_QUANTITY:
+            raise CartError("quantity exceeds the permitted limit")
         return self._write_line(cart_id, product_id, next_qty, action="added")
 
     def set_line(self, cart_id: object, product_id: object, quantity: object) -> dict[str, Any] | None:
@@ -385,6 +435,7 @@ class CartEngine:
         *,
         action: str,
     ) -> dict[str, Any]:
+        quantity = _require_quantity(quantity)
         stamp = _now()
         existing = self._line(cart_id, product_id)
         created_at = stamp if existing is None else existing["created_at"]
@@ -480,3 +531,13 @@ class CartQuery:
 
     def quote(self, cart_id) -> dict:
         return self._engine.quote(cart_id)
+
+
+class CartShopper:
+    """Package service used by other Storefront packages, never by HTTP directly."""
+
+    def __init__(self, engine: CartEngine) -> None:
+        self._engine = engine
+
+    def for_subject(self, owner_subject: str) -> dict:
+        return self._engine.cart_for_subject(owner_subject)

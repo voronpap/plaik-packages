@@ -1,0 +1,11 @@
+:root { --plk-accent: #e4572e; --plk-ink: #17202a; }
+.plk-auto-parts { color: var(--plk-ink); }
+.plk-auto-parts .plk-fitment { border: 1px solid #d7dce2; padding: 1rem; }
+.plk-product-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.plk-product-card, .plk-cart-items li { border: 1px solid #d7dce2; border-radius: .5rem; padding: 1rem; }
+.plk-product-card__sku { color: #59636e; font-size: .875rem; }
+.plk-action-form, [data-plaik-checkout-place] section { display: grid; gap: .75rem; max-width: 42rem; }
+.plk-action-form label, [data-plaik-checkout-place] label { display: grid; gap: .25rem; }
+.plk-action-status[data-state="error"] { color: #a31515; }
+.plk-action-status[data-state="success"] { color: #176b35; }
+[aria-busy="true"] { opacity: .7; pointer-events: none; }

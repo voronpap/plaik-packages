@@ -1,9 +1,9 @@
 {
   "id": "catalog",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "name": "Catalog",
-  "core": ">=0.4.0,<0.6.0",
+  "core": ">=0.5.0,<0.6.0",
   "dependencies": [],
   "conflicts": [],
   "permissions": [
@@ -18,6 +18,7 @@
   ],
   "services": [
     {"contract": "catalog.query", "version": "1.0.0"},
+    {"contract": "catalog.storefront", "version": "1.0.0"},
     {"contract": "catalog.products", "version": "1.0.0"},
     {"contract": "catalog.categories", "version": "1.0.0"},
     {"contract": "catalog.attributes", "version": "1.0.0"}
@@ -30,6 +31,7 @@
   ],
   "provides": [
     {"id": "catalog.products", "version": "1.0.0"},
+    {"id": "catalog.storefront", "version": "1.0.0"},
     {"id": "catalog.categories", "version": "1.0.0"},
     {"id": "catalog.attributes", "version": "1.0.0"}
   ],
@@ -67,6 +69,16 @@
         "position": 100
       },
       {
+        "slot": "storefront.home.featured",
+        "template": "product-grid.html",
+        "position": 100
+      },
+      {
+        "slot": "storefront.search.results",
+        "template": "product-grid.html",
+        "position": 100
+      },
+      {
         "slot": "storefront.product.gallery",
         "template": "product-gallery.html",
         "position": 100
@@ -77,5 +89,21 @@
         "position": 100
       }
     ]
+  },
+  "public": {
+    "queries": [
+      {"id": "products", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string", "max_length": 128}, "sku": {"type": "string", "max_length": 128}, "title": {"type": "string", "max_length": 512}}, "required": ["id", "sku", "title"], "additional_properties": false}, "max_items": 128}}, "required": ["items"], "additional_properties": false}},
+      {"id": "product", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {"id": {"type": "string", "max_length": 128}, "sku": {"type": "string", "max_length": 128}, "title": {"type": "string", "max_length": 512}}, "required": ["id", "sku", "title"], "additional_properties": false}},
+      {"id": "category", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"category_id": {"type": "string", "max_length": 128}}, "required": ["category_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {"id": {"type": "string", "max_length": 128}, "slug": {"type": "string", "max_length": 128}, "name": {"type": "string", "max_length": 512}}, "required": ["id", "slug", "name"], "additional_properties": false}},
+      {"id": "categories", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string", "max_length": 128}, "slug": {"type": "string", "max_length": 128}, "name": {"type": "string", "max_length": 512}}, "required": ["id", "slug", "name"], "additional_properties": false}, "max_items": 128}}, "required": ["items"], "additional_properties": false}}
+    ],
+    "actions": [],
+    "page_projections": [
+      {"id": "home", "page_key": "home", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string", "max_length": 128}, "sku": {"type": "string", "max_length": 128}, "title": {"type": "string", "max_length": 512}}, "required": ["id", "sku", "title"], "additional_properties": false}, "max_items": 24}}, "required": ["items"], "additional_properties": false}},
+      {"id": "catalog", "page_key": "catalog", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string", "max_length": 128}, "sku": {"type": "string", "max_length": 128}, "title": {"type": "string", "max_length": 512}}, "required": ["id", "sku", "title"], "additional_properties": false}, "max_items": 128}, "categories": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string", "max_length": 128}, "slug": {"type": "string", "max_length": 128}, "name": {"type": "string", "max_length": 512}}, "required": ["id", "slug", "name"], "additional_properties": false}, "max_items": 128}}, "required": ["items", "categories"], "additional_properties": false}},
+      {"id": "category", "page_key": "category", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {"category": {"type": "object", "properties": {"id": {"type": "string", "max_length": 128}, "slug": {"type": "string", "max_length": 128}, "name": {"type": "string", "max_length": 512}}, "required": ["id", "slug", "name"], "additional_properties": false}, "items": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string", "max_length": 128}, "sku": {"type": "string", "max_length": 128}, "title": {"type": "string", "max_length": 512}}, "required": ["id", "sku", "title"], "additional_properties": false}, "max_items": 128}}, "required": ["category", "items"], "additional_properties": false}},
+      {"id": "product", "page_key": "product", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "object", "properties": {"product": {"type": "object", "properties": {"id": {"type": "string", "max_length": 128}, "sku": {"type": "string", "max_length": 128}, "title": {"type": "string", "max_length": 512}}, "required": ["id", "sku", "title"], "additional_properties": false}}, "required": ["product"], "additional_properties": false}}
+    ],
+    "sitemap_projections": [{"id": "products", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {}, "additional_properties": false}, "response_schema": {"type": "array", "items": {"type": "string", "max_length": 256}, "max_items": 128}}]
   }
 }

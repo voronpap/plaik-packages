@@ -1097,6 +1097,55 @@ class CatalogQuery:
         return self._engine.query_upsert(product)
 
 
+class CatalogStorefront:
+    """Published-only projection used by every shopper-facing package."""
+
+    def __init__(self, engine: CatalogEngine) -> None:
+        self._engine = engine
+
+    def get(self, product_id: str) -> dict | None:
+        product = self._engine._get_product_record(_require_id(product_id))
+        if product is None or product.get("status") != "published":
+            return None
+        return self._engine._facade_product(product)
+
+    def list(self) -> tuple[dict, ...]:
+        return tuple(
+            self._engine._facade_product(product)
+            for product in self._engine.list_products()
+            if product.get("status") == "published"
+        )
+
+    def category(self, category_id: str) -> dict | None:
+        category = self._engine.get_category(_require_id(category_id, field="category_id"))
+        if category is None:
+            return None
+        if not self.products(category_id):
+            return None
+        return {key: category[key] for key in ("id", "slug", "name", "parent_id")}
+
+    def categories(self) -> tuple[dict, ...]:
+        return tuple(item for item in (self.category(row["id"]) for row in self._engine.list_categories()) if item is not None)
+
+    def products(self, category_id: str) -> tuple[dict, ...]:
+        category_id = _require_id(category_id, field="category_id")
+        if self._engine._using_sql():
+            with self._engine.runtime.sql.transaction() as tx:
+                rows = tx.fetchall(
+                    "SELECT " + _PRODUCT_COLUMNS + " FROM products p "
+                    "JOIN product_categories pc ON pc.store_id = p.store_id AND pc.product_id = p.id "
+                    "WHERE p.store_id = %s AND pc.category_id = %s AND p.status = %s ORDER BY p.slug",
+                    (self._engine.store_id, category_id, "published"),
+                )
+            return tuple(self._engine._facade_product(_product_record(row)) for row in rows)
+        return tuple(
+            self._engine._facade_product(product)
+            for product_id, product in self._engine._products.items()
+            if category_id in self._engine._product_categories.get(product_id, set())
+            and product.get("status") == "published"
+        )
+
+
 class CatalogProducts:
     def __init__(self, engine: CatalogEngine) -> None:
         self._engine = engine

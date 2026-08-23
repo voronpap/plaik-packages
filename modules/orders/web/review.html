@@ -1,1 +1,1 @@
-<section data-plaik-package="orders" data-plaik-slot="storefront.checkout.review"></section>
+<section data-plaik-package="orders"><h2>Review order</h2>{% if storefront and storefront.quote %}<p>{{ storefront.quote.lines|length }} line(s), goods total {{ storefront.quote.goods_minor }} {{ storefront.quote.currency }}.</p>{% else %}<p>Your cart is empty.</p>{% endif %}</section>

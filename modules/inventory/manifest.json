@@ -1,9 +1,9 @@
 {
   "id": "inventory",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "name": "Inventory",
-  "core": ">=0.4.0,<0.6.0",
+  "core": ">=0.5.0,<0.6.0",
   "dependencies": [{"package_id": "catalog", "version": ">=1.0.0,<2.0.0"}],
   "conflicts": [],
   "permissions": [{"id": "inventory.manage", "description": "Manage stock levels"}],
@@ -17,7 +17,7 @@
     {"contract": "inventory.stockChanged", "version": "1.0.0"}
   ],
   "provides": [{"id": "inventory.stock", "version": "1.0.0"}],
-  "requires": [{"id": "catalog.products", "version": ">=1.0.0,<2.0.0"}],
+  "requires": [{"id": "catalog.products", "version": ">=1.0.0,<2.0.0"}, {"id": "catalog.storefront", "version": ">=1.0.0,<2.0.0"}],
   "migrations": [
     {"version": "001_init", "path": "sql/001_init.sql"},
     {"version": "002_inventory_v1", "path": "sql/002_inventory_v1.sql"}
@@ -40,5 +40,6 @@
         "position": 100
       }
     ]
-  }
+  },
+  "public": {"queries": [{"id": "availability", "access": "anonymous_read", "input_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}}, "required": ["product_id"], "additional_properties": false}, "response_schema": {"type": "object", "properties": {"product_id": {"type": "string", "max_length": 128}, "quantity": {"type": "integer"}}, "required": ["product_id", "quantity"], "additional_properties": false}}], "actions": [], "page_projections": [], "sitemap_projections": []}
 }
