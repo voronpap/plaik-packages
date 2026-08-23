@@ -1119,13 +1119,15 @@ class CatalogStorefront:
             with self._engine.runtime.sql.transaction() as tx:
                 rows = tx.fetchall(
                     "SELECT " + _PRODUCT_COLUMNS + " FROM products "
-                    "WHERE store_id = %s AND status = %s ORDER BY slug LIMIT %s",
+                    "WHERE store_id = %s AND status = %s ORDER BY slug, id LIMIT %s",
                     (self._engine.store_id, "published", _STOREFRONT_LIMIT),
                 )
             return tuple(self._engine._facade_product(_product_record(row)) for row in rows)
         published = (
-            product for product in self._engine._products.values()
-            if product.get("status") == "published"
+            product for product in sorted(
+                self._engine._products.values(),
+                key=lambda item: (str(item.get("slug") or item.get("id") or ""), str(item.get("id") or "")),
+            ) if product.get("status") == "published"
         )
         return tuple(
             self._engine._facade_product(product)
@@ -1149,14 +1151,18 @@ class CatalogStorefront:
                     "SELECT 1 FROM product_categories pc JOIN products p "
                     "ON p.store_id = pc.store_id AND p.id = pc.product_id "
                     "WHERE pc.store_id = c.store_id AND pc.category_id = c.id "
-                    "AND p.status = %s) ORDER BY c.slug LIMIT %s",
+                    "AND p.status = %s) ORDER BY c.slug, c.id LIMIT %s",
                     (self._engine.store_id, "published", _STOREFRONT_LIMIT),
                 )
             return tuple(
                 {key: row[key] for key in ("id", "slug", "name", "parent_id")}
                 for row in rows
             )
-        visible = (self.category(row["id"]) for row in self._engine._categories.values())
+        category_rows = sorted(
+            self._engine._categories.values(),
+            key=lambda item: (str(item.get("slug") or item.get("id") or ""), str(item.get("id") or "")),
+        )
+        visible = (self.category(row["id"]) for row in category_rows)
         return tuple(
             item for _, item in zip(range(_STOREFRONT_LIMIT), (item for item in visible if item is not None))
         )
@@ -1170,13 +1176,16 @@ class CatalogStorefront:
                     "SELECT " + _PRODUCT_JOIN_COLUMNS + " FROM products p "
                     "JOIN product_categories pc ON pc.store_id = p.store_id AND pc.product_id = p.id "
                     "WHERE p.store_id = %s AND pc.category_id = %s AND p.status = %s "
-                    "ORDER BY p.slug LIMIT %s",
+                    "ORDER BY p.slug, p.id LIMIT %s",
                     (self._engine.store_id, category_id, "published", limit),
                 )
             return tuple(self._engine._facade_product(_product_record(row)) for row in rows)
         published = (
             self._engine._facade_product(product)
-            for product_id, product in self._engine._products.items()
+            for product_id, product in sorted(
+                self._engine._products.items(),
+                key=lambda pair: (str(pair[1].get("slug") or pair[0]), str(pair[0])),
+            )
             if category_id in self._engine._product_categories.get(product_id, set())
             and product.get("status") == "published"
         )

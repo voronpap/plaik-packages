@@ -164,6 +164,33 @@ def test_catalog_category_sql_qualifies_joined_product_columns() -> None:
     assert statements[0].endswith("LIMIT %s")
 
 
+def test_catalog_storefront_memory_bounds_are_deterministic() -> None:
+    catalog = load("catalog", "catalog_engine")
+
+    class Runtime:
+        store_id = "test-store"
+
+    engine = catalog.CatalogEngine(Runtime())
+    engine._mode = "memory"
+    for index in reversed(range(140)):
+        product_id = f"p-{index:03d}"
+        engine._products[product_id] = {
+            "id": product_id,
+            "sku": product_id,
+            "slug": f"slug-{index % 3:03d}",
+            "title": product_id,
+            "status": "published",
+        }
+        engine._product_categories[product_id] = {"brakes"}
+    storefront = catalog.CatalogStorefront(engine)
+    expected = sorted(
+        engine._products,
+        key=lambda product_id: (engine._products[product_id]["slug"], product_id),
+    )[:128]
+    assert [item["id"] for item in storefront.list()] == expected
+    assert [item["id"] for item in storefront.products("brakes")] == expected
+
+
 def test_auto_parts_browser_client_uses_fixed_safe_public_boundary() -> None:
     client = (ROOT.parent / "themes" / "auto-parts" / "assets" / "js" / "storefront.js").read_text(encoding="utf-8")
     assert 'fetch("/api/storefront/session"' in client
