@@ -147,35 +147,41 @@ class CheckoutEngine:
             if str(existing.get("state") or "") == "completed":
                 return self._replay(existing)
             raise CheckoutError("checkout in progress")
-        # Claim the cart before reading its quote.  The claim is cart-scoped
-        # and remains terminal after completion, so a different key cannot
-        # race on the same pre-clear cart snapshot.
+        # Claim the cart before reading its quote.  Only unresolved claims
+        # retain the cart-scoped fence, so a different key cannot race on a
+        # pre-clear snapshot while later purchases remain possible.
         existing = self._claim(idempotency_key, cart_id, subject, fingerprint)
         if existing is not None:
             if str(existing.get("state") or "") == "completed":
                 return self._replay(existing)
             raise CheckoutError("checkout in progress")
-        quoted = self._quote_cart(cart_id)
-        discount = 0
-        if coupon_code:
-            applied = self._invoke(
-                "promotions.query",
-                "apply",
-                {
-                    "code": coupon_code,
-                    "goods_minor": quoted["goods_minor"],
-                    "currency": quoted["currency"],
-                },
-            )
-            discount = int(applied["discount_amount_minor"])
-        shipping = self._invoke("shipping.query", "quote", shipping_method_id)
-        shipping_amount = int(shipping["amount_minor"])
-        shipping_currency = str(shipping["currency"])
-        if shipping_currency != quoted["currency"]:
-            raise CheckoutError("mixed currencies")
-        payable = quoted["goods_minor"] + shipping_amount - discount
-        if payable < 0:
-            raise CheckoutError("payable_amount_minor must be >= 0")
+        try:
+            quoted = self._quote_cart(cart_id)
+            discount = 0
+            if coupon_code:
+                applied = self._invoke(
+                    "promotions.query",
+                    "apply",
+                    {
+                        "code": coupon_code,
+                        "goods_minor": quoted["goods_minor"],
+                        "currency": quoted["currency"],
+                    },
+                )
+                discount = int(applied["discount_amount_minor"])
+            shipping = self._invoke("shipping.query", "quote", shipping_method_id)
+            shipping_amount = int(shipping["amount_minor"])
+            shipping_currency = str(shipping["currency"])
+            if shipping_currency != quoted["currency"]:
+                raise CheckoutError("mixed currencies")
+            payable = quoted["goods_minor"] + shipping_amount - discount
+            if payable < 0:
+                raise CheckoutError("payable_amount_minor must be >= 0")
+        except Exception:
+            # No inventory/order/payment side effect has started.  Release
+            # the durable fence so a corrected request can safely retry.
+            self._release(idempotency_key)
+            raise
         adjusted: list[tuple[str, int]] = []
         order_id = ""
         payment_id = ""

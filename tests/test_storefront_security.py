@@ -181,6 +181,28 @@ def test_checkout_cart_claim_fences_concurrent_different_keys() -> None:
     assert engine._claim("next-purchase", "cart-one", "subject-one-0001", "c" * 64) is None
 
 
+def test_checkout_releases_claim_after_safe_pre_effect_failure() -> None:
+    checkout = load("checkout", "checkout_engine")
+
+    class Runtime:
+        store_id = "test-store"
+
+    engine = checkout.CheckoutEngine(Runtime())
+    engine._mode = "memory"
+    engine._quote_cart = lambda _cart_id: (_ for _ in ()).throw(checkout.CheckoutError("cart is empty"))
+    payload = {
+        "cart_id": "cart-safe",
+        "shipping_method_id": "manual",
+        "idempotency_key": "safe-key",
+        "_public_subject": "subject-safe-0001",
+        "_public_fingerprint": "e" * 64,
+    }
+    with pytest.raises(checkout.CheckoutError, match="cart is empty"):
+        engine.place(payload)
+    assert engine._placements == {}
+    assert engine._claim("corrected-key", "cart-safe", "subject-safe-0001", "f" * 64) is None
+
+
 def test_auto_parts_composes_every_projected_listing_route() -> None:
     manifest = json.loads((ROOT / "catalog" / "manifest.json").read_text(encoding="utf-8"))
     slots = {entry["slot"] for entry in manifest["web"]["slots"]}
