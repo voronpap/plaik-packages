@@ -141,10 +141,13 @@ def test_auto_parts_browser_client_uses_fixed_safe_public_boundary() -> None:
     client = (ROOT.parent / "themes" / "auto-parts" / "assets" / "js" / "storefront.js").read_text(encoding="utf-8")
     assert 'fetch("/api/storefront/session"' in client
     assert '"X-PLAIK-CSRF-Token": token' in client
-    assert '"Idempotency-Key": idempotencyKey()' in client
+    assert '"Idempotency-Key": key' in client
+    assert "element.dataset.plaikIdempotencyKey || idempotencyKey()" in client
+    assert "delete element.dataset.plaikIdempotencyKey" in client
     assert '"/api/storefront/" + packageId + "/actions/" + actionId' in client
     assert "innerHTML" not in client
     assert "eval(" not in client
+    assert "Math.random" not in client
 
 
 def test_auto_parts_layouts_load_the_declared_browser_client() -> None:

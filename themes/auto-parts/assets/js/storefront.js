@@ -7,7 +7,14 @@
     if (window.crypto && typeof window.crypto.randomUUID === "function") {
       return window.crypto.randomUUID();
     }
-    return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+    if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+      var bytes = new Uint8Array(24);
+      window.crypto.getRandomValues(bytes);
+      return Array.prototype.map.call(bytes, function (value) {
+        return value.toString(16).padStart(2, "0");
+      }).join("");
+    }
+    throw new Error("Secure browser randomness is unavailable.");
   }
 
   async function session() {
@@ -24,7 +31,7 @@
     return csrfToken;
   }
 
-  async function action(packageId, actionId, payload) {
+  async function action(packageId, actionId, payload, key) {
     var token = await session();
     var response = await fetch("/api/storefront/" + packageId + "/actions/" + actionId, {
       method: "POST",
@@ -32,7 +39,7 @@
       headers: {
         "Content-Type": "application/json",
         "X-PLAIK-CSRF-Token": token,
-        "Idempotency-Key": idempotencyKey()
+        "Idempotency-Key": key
       },
       body: JSON.stringify(payload)
     });
@@ -42,7 +49,9 @@
         var error = await response.json();
         if (typeof error.detail === "string") message = error.detail;
       } catch (_) {}
-      throw new Error(message);
+      var failure = new Error(message);
+      failure.keepIdempotencyKey = response.status === 409 || response.status >= 500;
+      throw failure;
     }
     return response.json();
   }
@@ -56,12 +65,18 @@
   }
 
   async function mutate(element, packageId, actionId, payload, success) {
+    var key = element.dataset.plaikIdempotencyKey || idempotencyKey();
+    element.dataset.plaikIdempotencyKey = key;
     try {
       element.setAttribute("aria-busy", "true");
-      await action(packageId, actionId, payload);
+      await action(packageId, actionId, payload, key);
+      delete element.dataset.plaikIdempotencyKey;
       status(element, success, false);
       window.setTimeout(function () { window.location.reload(); }, 250);
     } catch (error) {
+      if (!error.keepIdempotencyKey && error instanceof TypeError === false) {
+        delete element.dataset.plaikIdempotencyKey;
+      }
       status(element, error.message, true);
     } finally {
       element.removeAttribute("aria-busy");
