@@ -8,14 +8,44 @@ from plaik_contracts import PublicDeclarationKind, PublicResponseEnvelope
 
 def register_public(runtime: Any, query: Any) -> None:
     def public_cart(cart: Mapping[str, Any]) -> dict[str, Any]:
-        return {"lines": [{key: line[key] for key in ("product_id", "quantity") if key in line} for line in cart.get("lines", []) if isinstance(line, Mapping)]}
+        return {
+            "lines": [
+                {
+                    "product_id": str(line["product_id"]),
+                    "quantity": int(line["quantity"]),
+                }
+                for line in cart.get("lines", [])
+                if isinstance(line, Mapping)
+            ]
+        }
+
     def public_quote(quote: Mapping[str, Any]) -> dict[str, Any]:
         lines = []
         for line in quote.get("lines", []):
-            if isinstance(line, Mapping): lines.append({key: line[key] for key in ("product_id", "quantity", "amount_minor", "currency") if key in line})
-        return {"lines": lines, "goods_minor": quote.get("goods_minor", 0), "currency": quote.get("currency")}
+            if not isinstance(line, Mapping):
+                continue
+            item = {
+                "product_id": str(line["product_id"]),
+                "quantity": int(line["quantity"]),
+            }
+            if isinstance(line.get("amount_minor"), int) and not isinstance(line.get("amount_minor"), bool):
+                item["amount_minor"] = int(line["amount_minor"])
+            if isinstance(line.get("currency"), str):
+                item["currency"] = line["currency"]
+            lines.append(item)
+        return {
+            "lines": lines,
+            "goods_minor": int(quote.get("goods_minor") or 0),
+            "currency": str(quote.get("currency") or ""),
+        }
+
     def public_method(method: Mapping[str, Any]) -> dict[str, Any]:
-        return {key: method[key] for key in ("method_id", "name", "amount_minor", "currency") if key in method}
+        return {
+            "method_id": str(method["method_id"]),
+            "name": str(method["name"]),
+            "amount_minor": int(method["amount_minor"]),
+            "currency": str(method["currency"]),
+        }
     def cart_for(context: Any) -> Mapping[str, Any]:
         subject = getattr(getattr(context, "subject", None), "value", None)
         if not subject:

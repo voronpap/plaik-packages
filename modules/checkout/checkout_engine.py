@@ -336,6 +336,9 @@ class CheckoutEngine:
             existing = self._load(idempotency_key)
             if existing is not None:
                 return existing
+            unresolved = self._load_unresolved_cart_claim(cart_id, subject)
+            if unresolved is not None:
+                raise CheckoutError("checkout requires reconciliation")
             record = {
                 "store_id": self.store_id,
                 "idempotency_key": idempotency_key,
@@ -358,6 +361,29 @@ class CheckoutEngine:
                     return existing
                 raise
             return None
+
+    def _load_unresolved_cart_claim(
+        self, cart_id: str, subject: str
+    ) -> dict[str, Any] | None:
+        states = {"in_flight", "needs_reconciliation"}
+        if not self._using_sql():
+            for record in self._placements.values():
+                if (
+                    str(record.get("cart_id") or "") == cart_id
+                    and str(record.get("subject") or "") == subject
+                    and str(record.get("state") or "") in states
+                ):
+                    return dict(record)
+            return None
+        with self.runtime.sql.transaction() as tx:
+            row = tx.fetchone(
+                "SELECT store_id, idempotency_key, cart_id, order_id, payment_id, "
+                "subject, fingerprint, state, created_at FROM checkout_placements "
+                "WHERE store_id = %s AND cart_id = %s AND subject = %s "
+                "AND state IN (%s, %s) ORDER BY created_at LIMIT 1",
+                (self.store_id, cart_id, subject, "in_flight", "needs_reconciliation"),
+            )
+        return None if row is None else dict(row)
 
     def _insert(self, record: Mapping[str, Any]) -> None:
         if not self._using_sql():

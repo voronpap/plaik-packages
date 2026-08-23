@@ -435,6 +435,7 @@ class CartEngine:
         *,
         action: str,
     ) -> dict[str, Any]:
+        quantity = _require_quantity(quantity)
         stamp = _now()
         existing = self._line(cart_id, product_id)
         created_at = stamp if existing is None else existing["created_at"]
