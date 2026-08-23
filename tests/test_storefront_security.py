@@ -161,6 +161,7 @@ def test_catalog_category_sql_qualifies_joined_product_columns() -> None:
     assert catalog.CatalogStorefront(engine).products("brakes") == ()
     assert statements and "SELECT p.id, p.store_id, p.sku" in statements[0]
     assert "JOIN product_categories" in statements[0]
+    assert statements[0].endswith("LIMIT %s")
 
 
 def test_auto_parts_browser_client_uses_fixed_safe_public_boundary() -> None:
