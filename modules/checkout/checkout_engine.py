@@ -339,8 +339,6 @@ class CheckoutEngine:
                 return existing
             prior = self._load_cart_claim(cart_id, subject)
             if prior is not None:
-                if str(prior.get("state") or "") == "completed":
-                    raise CheckoutError("cart was already checked out")
                 raise CheckoutError("checkout requires reconciliation")
             record = {
                 "store_id": self.store_id,
@@ -368,7 +366,7 @@ class CheckoutEngine:
     def _load_cart_claim(
         self, cart_id: str, subject: str
     ) -> dict[str, Any] | None:
-        states = {"in_flight", "needs_reconciliation", "completed"}
+        states = {"in_flight", "needs_reconciliation"}
         if not self._using_sql():
             for record in self._placements.values():
                 if (
@@ -383,8 +381,8 @@ class CheckoutEngine:
                 "SELECT store_id, idempotency_key, cart_id, order_id, payment_id, "
                 "subject, fingerprint, state, created_at FROM checkout_placements "
                 "WHERE store_id = %s AND cart_id = %s AND subject = %s "
-                "AND state IN (%s, %s, %s) ORDER BY created_at LIMIT 1",
-                (self.store_id, cart_id, subject, "in_flight", "needs_reconciliation", "completed"),
+                "AND state IN (%s, %s) ORDER BY created_at LIMIT 1",
+                (self.store_id, cart_id, subject, "in_flight", "needs_reconciliation"),
             )
         return None if row is None else dict(row)
 

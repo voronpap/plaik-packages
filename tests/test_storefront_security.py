@@ -176,6 +176,10 @@ def test_checkout_cart_claim_fences_concurrent_different_keys() -> None:
     assert sorted(outcomes) == ["blocked", "claimed"]
     assert len(engine._placements) == 1
 
+    first_key = next(iter(engine._placements))
+    engine._placements[first_key]["state"] = "completed"
+    assert engine._claim("next-purchase", "cart-one", "subject-one-0001", "c" * 64) is None
+
 
 def test_auto_parts_composes_every_projected_listing_route() -> None:
     manifest = json.loads((ROOT / "catalog" / "manifest.json").read_text(encoding="utf-8"))
