@@ -7,5 +7,18 @@ from plaik_contracts import PublicDeclarationKind, PublicResponseEnvelope
 def register_public(runtime: Any, query: Any) -> None:
     def price(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del context
-        return PublicResponseEnvelope(data=query.get(payload["product_id"]) or {})
+        product_id = payload["product_id"]
+        catalog = runtime.services.resolve("catalog.storefront", ">=1.0.0,<2.0.0")
+        if catalog.get(product_id) is None:
+            return PublicResponseEnvelope(data={})
+        record = query.get(product_id)
+        if not isinstance(record, Mapping):
+            return PublicResponseEnvelope(data={})
+        return PublicResponseEnvelope(
+            data={
+                "product_id": str(product_id),
+                "amount_minor": int(record["amount_minor"]),
+                "currency": str(record["currency"]),
+            }
+        )
     runtime.public.register(PublicHandlerRef(kind=PublicDeclarationKind.QUERY, id="price"), price)

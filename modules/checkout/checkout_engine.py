@@ -227,6 +227,16 @@ class CheckoutEngine:
             payment_id = str(payment["payment_id"])
             # Storefront v1 is manual/offline only.  Capturing here would
             # call the PSP path; payment remains open until an operator acts.
+            self._invoke("cart.query", "clear", cart_id)
+            stamp = _now()
+            self.runtime.events.publish(
+                "checkout.placed",
+                "1.0.0",
+                {"order_id": order_id, "payment_id": payment_id},
+                idempotency_key=_event_key(
+                    "checkout.placed", order_id, "placed", stamp
+                ),
+            )
             self._complete(idempotency_key, cart_id, order_id, payment_id)
         except Exception:
             # A failure after the durable claim may have placed an order or
@@ -242,18 +252,6 @@ class CheckoutEngine:
             "payment_id": payment_id,
             "created_at": stamp,
         }
-        try:
-            self._invoke("cart.query", "clear", cart_id)
-        except CheckoutError:
-            pass
-        self.runtime.events.publish(
-            "checkout.placed",
-            "1.0.0",
-            {"order_id": order_id, "payment_id": record["payment_id"]},
-            idempotency_key=_event_key(
-                "checkout.placed", order_id, "placed", stamp
-            ),
-        )
         return self._result(record, order=order, payable=payable, currency=quoted["currency"])
 
     def _quote_cart(self, cart_id: str) -> dict[str, Any]:

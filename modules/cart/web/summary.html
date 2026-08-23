@@ -1,1 +1,1 @@
-<aside aria-label="Cart summary" data-plaik-package="cart"><strong>Order summary</strong><p data-plaik-cart-total>Calculated at checkout.</p></aside>
+<aside aria-label="Cart summary" data-plaik-package="cart"><strong>Order summary</strong><p data-plaik-cart-total>{% if storefront and storefront.cart %}{{ storefront.cart.lines|length }} line(s){% else %}0 lines{% endif %}. Totals are confirmed at checkout.</p></aside>

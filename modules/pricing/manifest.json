@@ -17,7 +17,7 @@
     {"contract": "pricing.listChanged", "version": "1.0.0"}
   ],
   "provides": [{"id": "pricing.list", "version": "1.0.0"}],
-  "requires": [{"id": "catalog.products", "version": ">=1.0.0,<2.0.0"}],
+  "requires": [{"id": "catalog.products", "version": ">=1.0.0,<2.0.0"}, {"id": "catalog.storefront", "version": ">=1.0.0,<2.0.0"}],
   "migrations": [
     {"version": "001_init", "path": "sql/001_init.sql"},
     {"version": "002_pricing_v1", "path": "sql/002_pricing_v1.sql"}

@@ -1,1 +1,7 @@
-<button type="button" class="plk-add-to-cart" data-plaik-action="cart.add" data-plaik-package="cart">Add to cart</button>
+{% if storefront and storefront.product %}
+<form class="plk-action-form" data-plaik-cart-add data-product-id="{{ storefront.product.id }}">
+  <label>Quantity <input name="quantity" type="number" min="1" max="100" value="1" required></label>
+  <button type="submit" class="plk-add-to-cart">Add to cart</button>
+  <output class="plk-action-status" aria-live="polite"></output>
+</form>
+{% endif %}

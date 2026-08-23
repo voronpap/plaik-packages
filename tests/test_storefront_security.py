@@ -134,3 +134,21 @@ def test_catalog_category_membership_is_published_only() -> None:
     storefront = catalog.CatalogStorefront(engine)
     assert [row["id"] for row in storefront.products("brakes")] == ["live"]
     assert storefront.category("brakes")["id"] == "brakes"
+
+
+def test_auto_parts_browser_client_uses_fixed_safe_public_boundary() -> None:
+    client = (ROOT.parent / "themes" / "auto-parts" / "assets" / "js" / "storefront.js").read_text(encoding="utf-8")
+    assert 'fetch("/api/storefront/session"' in client
+    assert '"X-PLAIK-CSRF-Token": token' in client
+    assert '"Idempotency-Key": idempotencyKey()' in client
+    assert '"/api/storefront/" + packageId + "/actions/" + actionId' in client
+    assert "innerHTML" not in client
+    assert "eval(" not in client
+
+
+def test_auto_parts_layouts_load_the_declared_browser_client() -> None:
+    theme = ROOT.parent / "themes" / "auto-parts"
+    manifest = json.loads((theme / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["assets"]["js"] == ["assets/js/storefront.js"]
+    for layout in (theme / "templates" / "layouts").glob("*.html"):
+        assert '{{ theme_assets("js") }}' in layout.read_text(encoding="utf-8")

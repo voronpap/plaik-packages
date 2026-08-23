@@ -1,1 +1,19 @@
-<section aria-label="Cart items" data-plaik-package="cart"><p data-plaik-cart-items>Your cart is ready for products.</p></section>
+<section aria-label="Cart items" data-plaik-package="cart">
+  {% if storefront and storefront.cart and storefront.cart.lines %}
+    <ul class="plk-cart-items">
+      {% for line in storefront.cart.lines %}
+        <li data-product-id="{{ line.product_id }}">
+          <a href="/product/{{ line.product_id }}">{{ line.product_id }}</a>
+          <form data-plaik-cart-set data-product-id="{{ line.product_id }}">
+            <label>Quantity <input name="quantity" type="number" min="0" max="100" value="{{ line.quantity }}" required></label>
+            <button type="submit">Update</button>
+          </form>
+          <button type="button" data-plaik-cart-remove data-product-id="{{ line.product_id }}">Remove</button>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p data-plaik-cart-items>Your cart is empty.</p>
+  {% endif %}
+  <output class="plk-action-status" aria-live="polite"></output>
+</section>

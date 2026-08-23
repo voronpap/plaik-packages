@@ -8,5 +8,8 @@ def register_public(runtime: Any, query: Any) -> None:
     def availability(context: Any, payload: Mapping[str, Any]) -> PublicResponseEnvelope:
         del context
         product_id = payload["product_id"]
+        catalog = runtime.services.resolve("catalog.storefront", ">=1.0.0,<2.0.0")
+        if catalog.get(product_id) is None:
+            return PublicResponseEnvelope(data={})
         return PublicResponseEnvelope(data={"product_id": product_id, "quantity": query.get(product_id)})
     runtime.public.register(PublicHandlerRef(kind=PublicDeclarationKind.QUERY, id="availability"), availability)
