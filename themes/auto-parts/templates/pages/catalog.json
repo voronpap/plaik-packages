@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "sections": {
+    "site-header": {
+      "type": "header",
+      "settings": {},
+      "blocks": {},
+      "block_order": []
+    },
+    "catalog-main": {
+      "type": "collection",
+      "settings": {},
+      "blocks": {},
+      "block_order": []
+    },
+    "site-footer": {
+      "type": "footer",
+      "settings": {},
+      "blocks": {},
+      "block_order": []
+    }
+  },
+  "order": ["site-header", "catalog-main", "site-footer"]
+}

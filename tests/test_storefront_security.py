@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -98,7 +99,7 @@ def test_checkout_rejects_cross_subject_replay_and_unresolved_new_key() -> None:
     engine._placements["uncertain-key"] = {
         "store_id": "test-store",
         "idempotency_key": "uncertain-key",
-        "cart_id": "cart-alice",
+        "cart_id": "cart-uncertain",
         "order_id": "order-alice",
         "payment_id": "",
         "subject": "subject-alice-0001",
@@ -107,7 +108,7 @@ def test_checkout_rejects_cross_subject_replay_and_unresolved_new_key() -> None:
         "created_at": "2026-08-23T00:00:00+00:00",
     }
     with pytest.raises(checkout.CheckoutError, match="requires reconciliation"):
-        engine._claim("new-key", "cart-alice", "subject-alice-0001", "d" * 64)
+        engine._claim("new-key", "cart-uncertain", "subject-alice-0001", "d" * 64)
 
 
 def test_catalog_category_membership_is_published_only() -> None:
@@ -152,3 +153,34 @@ def test_auto_parts_layouts_load_the_declared_browser_client() -> None:
     assert manifest["assets"]["js"] == ["assets/js/storefront.js"]
     for layout in (theme / "templates" / "layouts").glob("*.html"):
         assert '{{ theme_assets("js") }}' in layout.read_text(encoding="utf-8")
+
+
+def test_checkout_cart_claim_fences_concurrent_different_keys() -> None:
+    checkout = load("checkout", "checkout_engine")
+
+    class Runtime:
+        store_id = "test-store"
+
+    engine = checkout.CheckoutEngine(Runtime())
+    engine._mode = "memory"
+
+    def claim(key: str) -> str:
+        try:
+            engine._claim(key, "cart-one", "subject-one-0001", key[0] * 64)
+            return "claimed"
+        except checkout.CheckoutError:
+            return "blocked"
+
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        outcomes = list(workers.map(claim, ("a-key", "b-key")))
+    assert sorted(outcomes) == ["blocked", "claimed"]
+    assert len(engine._placements) == 1
+
+
+def test_auto_parts_composes_every_projected_listing_route() -> None:
+    manifest = json.loads((ROOT / "catalog" / "manifest.json").read_text(encoding="utf-8"))
+    slots = {entry["slot"] for entry in manifest["web"]["slots"]}
+    assert {"storefront.collection.products", "storefront.home.featured", "storefront.search.results"} <= slots
+    theme = ROOT.parent / "themes" / "auto-parts"
+    assert "catalog" in json.loads((theme / "manifest.json").read_text(encoding="utf-8"))["page_templates"]
+    assert (theme / "templates" / "pages" / "catalog.json").is_file()

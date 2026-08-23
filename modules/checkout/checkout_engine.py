@@ -147,6 +147,14 @@ class CheckoutEngine:
             if str(existing.get("state") or "") == "completed":
                 return self._replay(existing)
             raise CheckoutError("checkout in progress")
+        # Claim the cart before reading its quote.  The claim is cart-scoped
+        # and remains terminal after completion, so a different key cannot
+        # race on the same pre-clear cart snapshot.
+        existing = self._claim(idempotency_key, cart_id, subject, fingerprint)
+        if existing is not None:
+            if str(existing.get("state") or "") == "completed":
+                return self._replay(existing)
+            raise CheckoutError("checkout in progress")
         quoted = self._quote_cart(cart_id)
         discount = 0
         if coupon_code:
@@ -168,11 +176,6 @@ class CheckoutEngine:
         payable = quoted["goods_minor"] + shipping_amount - discount
         if payable < 0:
             raise CheckoutError("payable_amount_minor must be >= 0")
-        existing = self._claim(idempotency_key, cart_id, subject, fingerprint)
-        if existing is not None:
-            if str(existing.get("state") or "") == "completed":
-                return self._replay(existing)
-            raise CheckoutError("checkout in progress")
         adjusted: list[tuple[str, int]] = []
         order_id = ""
         payment_id = ""
@@ -334,8 +337,10 @@ class CheckoutEngine:
             existing = self._load(idempotency_key)
             if existing is not None:
                 return existing
-            unresolved = self._load_unresolved_cart_claim(cart_id, subject)
-            if unresolved is not None:
+            prior = self._load_cart_claim(cart_id, subject)
+            if prior is not None:
+                if str(prior.get("state") or "") == "completed":
+                    raise CheckoutError("cart was already checked out")
                 raise CheckoutError("checkout requires reconciliation")
             record = {
                 "store_id": self.store_id,
@@ -360,10 +365,10 @@ class CheckoutEngine:
                 raise
             return None
 
-    def _load_unresolved_cart_claim(
+    def _load_cart_claim(
         self, cart_id: str, subject: str
     ) -> dict[str, Any] | None:
-        states = {"in_flight", "needs_reconciliation"}
+        states = {"in_flight", "needs_reconciliation", "completed"}
         if not self._using_sql():
             for record in self._placements.values():
                 if (
@@ -378,8 +383,8 @@ class CheckoutEngine:
                 "SELECT store_id, idempotency_key, cart_id, order_id, payment_id, "
                 "subject, fingerprint, state, created_at FROM checkout_placements "
                 "WHERE store_id = %s AND cart_id = %s AND subject = %s "
-                "AND state IN (%s, %s) ORDER BY created_at LIMIT 1",
-                (self.store_id, cart_id, subject, "in_flight", "needs_reconciliation"),
+                "AND state IN (%s, %s, %s) ORDER BY created_at LIMIT 1",
+                (self.store_id, cart_id, subject, "in_flight", "needs_reconciliation", "completed"),
             )
         return None if row is None else dict(row)
 

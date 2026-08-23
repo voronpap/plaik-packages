@@ -69,6 +69,16 @@
         "position": 100
       },
       {
+        "slot": "storefront.home.featured",
+        "template": "product-grid.html",
+        "position": 100
+      },
+      {
+        "slot": "storefront.search.results",
+        "template": "product-grid.html",
+        "position": 100
+      },
+      {
         "slot": "storefront.product.gallery",
         "template": "product-gallery.html",
         "position": 100

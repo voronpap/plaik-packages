@@ -10,7 +10,7 @@
   "hooks": ["displayHeader", "displayContent", "displayFooter"],
   "theme_api": 1,
   "slots": ["storefront.header.cart", "storefront.collection.products", "storefront.product.gallery", "storefront.product.variants", "storefront.product.add-to-cart", "storefront.product.after-price", "storefront.product.availability", "storefront.search.filters", "storefront.seo.structured-data", "storefront.cart.items", "storefront.cart.summary", "storefront.cart.actions", "storefront.checkout.customer", "storefront.checkout.shipping", "storefront.checkout.payment", "storefront.checkout.review"],
-  "page_templates": [],
+  "page_templates": ["catalog"],
   "sections": [],
   "blocks": [],
   "settings_schema": false,
