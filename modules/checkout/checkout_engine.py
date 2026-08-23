@@ -252,15 +252,9 @@ class CheckoutEngine:
             # adjusted stock.  It must be reconciled, never made retryable.
             self._mark_needs_reconciliation(idempotency_key)
             raise
-        stamp = _now()
-        record = {
-            "store_id": self.store_id,
-            "idempotency_key": idempotency_key,
-            "cart_id": cart_id,
-            "order_id": order_id,
-            "payment_id": payment_id,
-            "created_at": stamp,
-        }
+        record = self._load(idempotency_key)
+        if record is None or str(record.get("state") or "") != "completed":
+            raise CheckoutError("checkout completion was not persisted")
         return self._result(record, order=order, payable=payable, currency=quoted["currency"])
 
     def _quote_cart(self, cart_id: str) -> dict[str, Any]:
