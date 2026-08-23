@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from heapq import nsmallest
 from typing import Any
 from uuid import uuid4
 
@@ -1123,15 +1124,17 @@ class CatalogStorefront:
                     (self._engine.store_id, "published", _STOREFRONT_LIMIT),
                 )
             return tuple(self._engine._facade_product(_product_record(row)) for row in rows)
-        published = (
-            product for product in sorted(
-                self._engine._products.values(),
-                key=lambda item: (str(item.get("slug") or item.get("id") or ""), str(item.get("id") or "")),
-            ) if product.get("status") == "published"
+        published = nsmallest(
+            _STOREFRONT_LIMIT,
+            (
+                product for product in self._engine._products.values()
+                if product.get("status") == "published"
+            ),
+            key=lambda item: (str(item.get("slug") or item.get("id") or ""), str(item.get("id") or "")),
         )
         return tuple(
             self._engine._facade_product(product)
-            for _, product in zip(range(_STOREFRONT_LIMIT), published)
+            for product in published
         )
 
     def category(self, category_id: str) -> dict | None:
@@ -1158,13 +1161,22 @@ class CatalogStorefront:
                 {key: row[key] for key in ("id", "slug", "name", "parent_id")}
                 for row in rows
             )
-        category_rows = sorted(
-            self._engine._categories.values(),
+        visible_rows = (
+            row for row in self._engine._categories.values()
+            if any(
+                row["id"] in self._engine._product_categories.get(product_id, set())
+                and product.get("status") == "published"
+                for product_id, product in self._engine._products.items()
+            )
+        )
+        category_rows = nsmallest(
+            _STOREFRONT_LIMIT,
+            visible_rows,
             key=lambda item: (str(item.get("slug") or item.get("id") or ""), str(item.get("id") or "")),
         )
-        visible = (self.category(row["id"]) for row in category_rows)
         return tuple(
-            item for _, item in zip(range(_STOREFRONT_LIMIT), (item for item in visible if item is not None))
+            {key: row[key] for key in ("id", "slug", "name", "parent_id")}
+            for row in category_rows
         )
 
     def products(self, category_id: str, *, limit: int = _STOREFRONT_LIMIT) -> tuple[dict, ...]:
@@ -1180,16 +1192,17 @@ class CatalogStorefront:
                     (self._engine.store_id, category_id, "published", limit),
                 )
             return tuple(self._engine._facade_product(_product_record(row)) for row in rows)
-        published = (
-            self._engine._facade_product(product)
-            for product_id, product in sorted(
-                self._engine._products.items(),
-                key=lambda pair: (str(pair[1].get("slug") or pair[0]), str(pair[0])),
-            )
-            if category_id in self._engine._product_categories.get(product_id, set())
-            and product.get("status") == "published"
+        published = nsmallest(
+            limit,
+            (
+                (product_id, product)
+                for product_id, product in self._engine._products.items()
+                if category_id in self._engine._product_categories.get(product_id, set())
+                and product.get("status") == "published"
+            ),
+            key=lambda pair: (str(pair[1].get("slug") or pair[0]), str(pair[0])),
         )
-        return tuple(item for _, item in zip(range(limit), published))
+        return tuple(self._engine._facade_product(product) for _, product in published)
 
 
 class CatalogProducts:
