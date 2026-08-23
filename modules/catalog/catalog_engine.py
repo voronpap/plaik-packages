@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from heapq import nsmallest
 from typing import Any
 from uuid import uuid4
 
@@ -21,6 +22,11 @@ _PRODUCT_COLUMNS = (
     "id, store_id, sku, slug, title, status, kind, parent_id, brand_id, "
     "created_at, updated_at"
 )
+_PRODUCT_JOIN_COLUMNS = (
+    "p.id, p.store_id, p.sku, p.slug, p.title, p.status, p.kind, p.parent_id, "
+    "p.brand_id, p.created_at, p.updated_at"
+)
+_STOREFRONT_LIMIT = 128
 
 
 class CatalogError(ValueError):
@@ -1110,40 +1116,93 @@ class CatalogStorefront:
         return self._engine._facade_product(product)
 
     def list(self) -> tuple[dict, ...]:
+        if self._engine._using_sql():
+            with self._engine.runtime.sql.transaction() as tx:
+                rows = tx.fetchall(
+                    "SELECT " + _PRODUCT_COLUMNS + " FROM products "
+                    "WHERE store_id = %s AND status = %s ORDER BY slug, id LIMIT %s",
+                    (self._engine.store_id, "published", _STOREFRONT_LIMIT),
+                )
+            return tuple(self._engine._facade_product(_product_record(row)) for row in rows)
+        published = nsmallest(
+            _STOREFRONT_LIMIT,
+            (
+                product for product in self._engine._products.values()
+                if product.get("status") == "published"
+            ),
+            key=lambda item: (str(item.get("slug") or item.get("id") or ""), str(item.get("id") or "")),
+        )
         return tuple(
             self._engine._facade_product(product)
-            for product in self._engine.list_products()
-            if product.get("status") == "published"
+            for product in published
         )
 
     def category(self, category_id: str) -> dict | None:
         category = self._engine.get_category(_require_id(category_id, field="category_id"))
         if category is None:
             return None
-        if not self.products(category_id):
+        if not self.products(category_id, limit=1):
             return None
         return {key: category[key] for key in ("id", "slug", "name", "parent_id")}
 
     def categories(self) -> tuple[dict, ...]:
-        return tuple(item for item in (self.category(row["id"]) for row in self._engine.list_categories()) if item is not None)
-
-    def products(self, category_id: str) -> tuple[dict, ...]:
-        category_id = _require_id(category_id, field="category_id")
         if self._engine._using_sql():
             with self._engine.runtime.sql.transaction() as tx:
                 rows = tx.fetchall(
-                    "SELECT " + _PRODUCT_COLUMNS + " FROM products p "
+                    "SELECT c.id, c.slug, c.name, c.parent_id FROM categories c "
+                    "WHERE c.store_id = %s AND EXISTS ("
+                    "SELECT 1 FROM product_categories pc JOIN products p "
+                    "ON p.store_id = pc.store_id AND p.id = pc.product_id "
+                    "WHERE pc.store_id = c.store_id AND pc.category_id = c.id "
+                    "AND p.status = %s) ORDER BY c.slug, c.id LIMIT %s",
+                    (self._engine.store_id, "published", _STOREFRONT_LIMIT),
+                )
+            return tuple(
+                {key: row[key] for key in ("id", "slug", "name", "parent_id")}
+                for row in rows
+            )
+        visible_rows = (
+            row for row in self._engine._categories.values()
+            if any(
+                row["id"] in self._engine._product_categories.get(product_id, set())
+                and product.get("status") == "published"
+                for product_id, product in self._engine._products.items()
+            )
+        )
+        category_rows = nsmallest(
+            _STOREFRONT_LIMIT,
+            visible_rows,
+            key=lambda item: (str(item.get("slug") or item.get("id") or ""), str(item.get("id") or "")),
+        )
+        return tuple(
+            {key: row[key] for key in ("id", "slug", "name", "parent_id")}
+            for row in category_rows
+        )
+
+    def products(self, category_id: str, *, limit: int = _STOREFRONT_LIMIT) -> tuple[dict, ...]:
+        category_id = _require_id(category_id, field="category_id")
+        limit = min(max(int(limit), 1), _STOREFRONT_LIMIT)
+        if self._engine._using_sql():
+            with self._engine.runtime.sql.transaction() as tx:
+                rows = tx.fetchall(
+                    "SELECT " + _PRODUCT_JOIN_COLUMNS + " FROM products p "
                     "JOIN product_categories pc ON pc.store_id = p.store_id AND pc.product_id = p.id "
-                    "WHERE p.store_id = %s AND pc.category_id = %s AND p.status = %s ORDER BY p.slug",
-                    (self._engine.store_id, category_id, "published"),
+                    "WHERE p.store_id = %s AND pc.category_id = %s AND p.status = %s "
+                    "ORDER BY p.slug, p.id LIMIT %s",
+                    (self._engine.store_id, category_id, "published", limit),
                 )
             return tuple(self._engine._facade_product(_product_record(row)) for row in rows)
-        return tuple(
-            self._engine._facade_product(product)
-            for product_id, product in self._engine._products.items()
-            if category_id in self._engine._product_categories.get(product_id, set())
-            and product.get("status") == "published"
+        published = nsmallest(
+            limit,
+            (
+                (product_id, product)
+                for product_id, product in self._engine._products.items()
+                if category_id in self._engine._product_categories.get(product_id, set())
+                and product.get("status") == "published"
+            ),
+            key=lambda pair: (str(pair[1].get("slug") or pair[0]), str(pair[0])),
         )
+        return tuple(self._engine._facade_product(product) for _, product in published)
 
 
 class CatalogProducts:
