@@ -1,5 +1,5 @@
 <section class="plk-product-grid" aria-label="Products" data-plaik-package="catalog">
-  {% if storefront and storefront.items %}
+  {% if storefront and "items" in storefront and storefront.items %}
     {% for product in storefront.items %}
       <article class="plk-product-card">
         <p class="plk-product-card__sku">{{ product.sku }}</p>
