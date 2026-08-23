@@ -1,5 +1,5 @@
 <section aria-label="Cart items" data-plaik-package="cart">
-  {% if storefront and storefront.cart and storefront.cart.lines %}
+  {% if storefront and "cart" in storefront and storefront.cart and storefront.cart.lines %}
     <ul class="plk-cart-items">
       {% for line in storefront.cart.lines %}
         <li data-product-id="{{ line.product_id }}">
